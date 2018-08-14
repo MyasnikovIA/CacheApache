@@ -5,7 +5,7 @@
 <example>
   d ##class(%ZWeb.Server).Start(80  , "D:\www","csp/user/SMWrap.main.cls" )
   d ##class(%ZWeb.Server).Start(80  , "C:\sirena\env","index.html" )
-  d ##class(%ZWeb.Server).Stop(80)
+  d ##class(%ZWeb.Server).Stop(80)%ZWeb.Server
   d ##class(%ZWeb.Server).Start(8228  , "C:\AppServ\www","DUBROVINO","index.htm" )
   d ##class(%ZWeb.Server).Start(6010  , "C:\AppServ\www","index.html" )
   d ##class(%ZWeb.Server).Start(6010  , "C:\AppCacheSrv\www","user","index.html" )
