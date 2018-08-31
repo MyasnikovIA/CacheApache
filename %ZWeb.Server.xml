@@ -1,68 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Export generator="Cache" version="25">
-<Class name="%ZHTML.RunJob">
-<Description><![CDATA[
-<br>Скрипт(JS): 
-<br> &lt;script  type="text/javascript"  src='%25ZHTML.RunJob.cls'&gt;&lt;/script&gt; 
-<br> 
-<br> <!--  <script language="JavaScript" type="text/javascript" src="%25ZHTML.RunJob.cls"></script>  -->]]></Description>
+<Class name="%ZWeb.RunJob">
 <Super>%CSP.Page</Super>
-<TimeCreated>64607,52140.23416</TimeCreated>
-
-<Method name="ExecFrag">
-<Description>
-Метод разбивки исходного текста на Cache` код и HTML текст</Description>
-<ClassMethod>1</ClassMethod>
-<FormalSpec>SrcCode="",Beg="",End=""</FormalSpec>
-<Implementation><![CDATA[
-      q:SrcCode=""   q:Beg=""    q:End="" 
-      s html=SrcCode
-      for {
-          s HtmlFrag=$e(SrcCode,1,$l($p(SrcCode,Beg,1)) ) 
-          w HtmlFrag
-          s SrcCode=$e(SrcCode,$l(HtmlFrag)+1+$l(Beg),$l(SrcCode) ) 
-          s CodeFrag=$e(SrcCode,1, $l($p(SrcCode,End,1)) ) 
-          s SrcCode=$e(SrcCode,$l(CodeFrag)+1+$l(End),$l(SrcCode) ) 
-          if $l(CodeFrag)>0{
-             TRY {  x $tr(CodeFrag,$c(13,10),"   ")   } CATCH ErrorHandle {    zw ErrorHandle  }
-          }
-        q:SrcCode=""
-      }
-]]></Implementation>
-</Method>
-
-<Method name="DrawXdata">
-<ClassMethod>1</ClassMethod>
-<FormalSpec>Name={##This_":XDataContet"}</FormalSpec>
-<Language>cache</Language>
-<ReturnType>%Library.Status</ReturnType>
-<Implementation><![CDATA[
-   if $l(Name,":")=1,$e(Name,1,2)'=".."{  s Name=".."_Name  }
-   if $e(Name,1,2)=".." {  s ClassName=##This,XdataName=$e(Name,3,$l(Name))
-   }else{                  s ClassName=$p(Name,":",1),XdataName=$p(Name,":",2)  }
-   s gl="^oddDEF("""_ClassName_""",""x"","""_XdataName_""",21)"  
-   s FragOnPageInd=""  f {  s FragOnPageInd=$o(@gl@(FragOnPageInd))  q:FragOnPageInd=""  continue:FragOnPageInd=1  q:FragOnPageInd=@gl      d ..ExecFrag(@gl@(FragOnPageInd),"/*(",")*/")     w $c(13,10)  }
-]]></Implementation>
-</Method>
+<TimeCreated>64891,36695.235768</TimeCreated>
 
 <Method name="OnPreHTTP">
 <ClassMethod>1</ClassMethod>
 <ReturnType>%Library.Boolean</ReturnType>
 <Implementation><![CDATA[
-     ; s %response.CharSet="CP1251"
-     s %response.CharSet="UTF-8"
-     if %request.Get("cspIntRunMethod",0)=1 {
-          if %response.ContentType="text/html" {
-            Do %response.SetHeader("Content-Type","text/plain")   
-          }
-         q 1   
-     }
-     if $d(%request.Data("cspIntRunJob")){             Do %response.SetHeader("Content-Type","application/javascript")  q 1  }
-     if $d(%request.Data("cspRunJobStatus")){  Do %response.SetHeader("Content-Type","application/javascript")  q 1  } 
-     if $d(%request.Data("cspKillRunJob")){       Do %response.SetHeader("Content-Type","application/javascript")  q 1  }
-
-     Do %response.SetHeader("Content-Type","application/javascript")   
-     q 1
+  s %response.CharSet="CP1251"
+  ; s %response.CharSet="UTF-8"
+  Do %response.SetHeader("Content-Type","application/javascript")   
+  q 1
 ]]></Implementation>
 </Method>
 
@@ -70,562 +19,543 @@
 <ClassMethod>1</ClassMethod>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
-    #define cspEncode(%k,%d)      $translate($System.Encryption.AESBase64Encode(%d,%k),"+=/"_$char(32,13,10),"_-$") 
-    #define cspDecode(%k,%d)      $System.Encryption.AESBase64Decode($translate(%d,"_-$","+=/"),%k) 
-    ; s I=$ZU(111,0)   
-    ; s  %ClientIP=$A(I,1)_"."_$A(I,2)_"."_$A(I,3)_"."_$A(I,4)
-    ; k I
-    s %ClientIP= $ZU(67, 15, $job)
-  	s ParentClass=""
+#define cspEncode(%k,%d)        $translate($System.Encryption.AESBase64Encode(%d,%k),"+=/"_$char(32,13,10),"_-$")
+#define cspDecode(%k,%d)        $System.Encryption.AESBase64Decode($translate(%d,"_-$","+=/"),%k)
+	
+	 /// Подключение класса и интерпритация его как JS библиотек
+    if %request.Get("include","")'=""{
+	   s ClassCSP=%request.Get("include","")
+  	   s ClassCSP=$tr(ClassCSP," ","")
+       k filtr
+	   for ind=1:1:$l(ClassCSP,","){
+	      d $system.OBJ.GetDependencies($p(ClassCSP,",",ind),.included)
+          s ClassParentTmp=""
+          for {
+            s ClassParentTmp=$o(included(ClassParentTmp))
+            q:ClassParentTmp=""
+            continue:$d(filtr(ClassParentTmp))
+            d ..readJSFunctionFromCacheClass(ClassParentTmp)
+            s filtr(ClassParentTmp)=1
+          } 
+	   }
+	   q 1   
+    }
+    
+    
+    /// Подключение класса и интерпритация его как JS библиотек
+    if %request.Get("object","")'=""{
+	   s ClassCSP=%request.Get("object","")
+  	   s ClassCSP=$tr(ClassCSP," ","")
+       k filtrObj
+	   for ind=1:1:$l(ClassCSP,","){
+	     
+	      // Если класс есть, тогда интерпритируем 
+	      if $zObjClassMethod("%CompiledClass","%ExistsId",$p(ClassCSP,",",ind))=1 {
+	            d $system.OBJ.GetDependencies($p(ClassCSP,",",ind),.included)
+                s ClassParentTmp=""
+                for {
+                  s ClassParentTmp=$o(included(ClassParentTmp))
+                  q:ClassParentTmp=""
+                  continue:$d(filtrObj(ClassParentTmp))
+                  d ..readJSObjectFromCacheClass(ClassParentTmp)
+                  s filtrObj(ClassParentTmp)=1
+                } 
+	      }else{
+		   // иначе проверяем есть ли такой пакет, и добавляем весь пакет
+		    s ClassTmpPacket=""
+		    for {
+		         s ClassTmpPacket=$o(^oddDEF(ClassTmpPacket))
+		         q:ClassTmpPacket=""  
+		         if $e(ClassTmpPacket,1,$l($p(ClassCSP,",",ind)))=$p(ClassCSP,",",ind){
+ 	                 d $system.OBJ.GetDependencies(ClassTmpPacket,.included)
+                     s ClassParentTmp=""
+                     for {
+                        s ClassParentTmp=$o(included(ClassParentTmp))
+                        q:ClassParentTmp=""
+                        continue:$d(filtrObj(ClassParentTmp))
+                        d ..readJSObjectFromCacheClass(ClassParentTmp)
+                        s filtrObj(ClassParentTmp)=1
+                     } 
+		         }
+		    }
+		      
+	      }  
+	   }
+	   q 1   
+    } 
+    
+    
+    
+    
+   	 /// Вычитываем тело POST запроса
+	s json=""
+	if $isobject(%request.Content){
+	   for {
+		  q:%request.Content.AtEnd
+	      s json=json_%request.Content.Read(32000)	     
+	   }	
+	}
+	
+	s ParentClass=""
     s:$d(%request.CgiEnvs("HTTP_REFERER")) ParentClass= $SYSTEM.CSP.GetClassName(%request.CgiEnvs("HTTP_REFERER"))
     s:ParentClass="" ParentClass=%request.Get("ParentClass","")
 	s:ParentClass="" ParentClass=##THIS
-
-    if $d(%request.Data("cspIntRunMethod")){       
-	    s WEVENT=%request.Get("WEVENT","")
-	    if $l(WEVENT,".")=1 {
-           s WEVENT=$lg($$$cspDecode(%session.Key,WEVENT),1) 
-           s WEVENT=$p(WEVENT,":",1) ; ????
-	    }
-	    s %method=$p(WEVENT,".",$l(WEVENT,"."))
-        s %class=$e(WEVENT,1,$l(WEVENT)-$l(%method)-1)
-        if %class="."  s %class= ParentClass
-        s WEVENT=$c(1)_WEVENT
-        s WEVENT= $$$cspEncode(%session.Key,"1"_WEVENT)
-        d %request.Set("WEVENT",WEVENT)
-        s %sc=""
-        s %isNewMethod=1
-        d ..ExecRunMethod()
-        Quit $$$OK
-     }    
-    
-    
-    if $d(%request.Data("cspgetAllJobList")){  
-        s gl="^mtempRunJob"
-      
-       Quit $$$OK
-    }
- 
-    if $d(%request.Data("cspgetJobList")){  
-        s gl="^mtempRunJob("""_%ClientIP_""")"
-        Quit $$$OK
-    }
-    
-    if $d(%request.Data("cspRunJobTest")){       
-        s %RunJobId =%request.Get("cspRunJobTest","")
-        if %RunJobId="" { w "OK" q $$$OK }
-        s gl="^mtempRunJob("""_%ClientIP_""","""_%RunJobId_""")"
-        if $d(@gl@("OK")),@gl@("OK")=0 {  
-            w "NO OK" q $$$OK 
-        }
-        if $d(@gl@("JOB")),@gl@("JOB")=0 {  
-          if $DATA(^$JOB(@gl@("JOB"))) {
-            w "NO OK" q $$$OK 
-          }
-        }
-        k @gl
-        w "OK"
-        q $$$OK 
-    }
-    
-    if $d(%request.Data("cspIntRunJob")){       
-         s WEVENT=%request.Get("WEVENT","")
-         if $l(WEVENT,".")=1 {
-           s WEVENT=$lg($$$cspDecode(%session.Key,WEVENT),1) 
-           s WEVENT=$p(WEVENT,":",1) ; ????
-         }
-         s %method=$p(WEVENT,".",$l(WEVENT,"."))
-        s %class=$e(WEVENT,1,$l(WEVENT)-$l(%method)-1)
-        if %class="."{
-            s:$d(%request.CgiEnvs("HTTP_REFERER")) %class= $SYSTEM.CSP.GetClassName(%request.CgiEnvs("HTTP_REFERER"))
-        }
-        s WEVENT=$c(1)_WEVENT
-        s WEVENT= $$$cspEncode(%session.Key,"1"_WEVENT)
-        d %request.Set("WEVENT",WEVENT)
-        s %RunJobId=%request.Get("cspIntRunJob","")
-        s %sc=""
-        s %isNewMethod=1
-        if %RunJobId="" {
-           s %RunJobId=$JOB_$tr($h,",")
-        }
-         d ..KillLOldGlobal(%RunJobId)
-        
-        s gl="^mtempRunJob("""_%ClientIP_""","""_%RunJobId_""")"
-        ; Запрещаем повторный запуск классметода в паралельном процессе
-         if $d(@gl@("GBL")),@gl@("OK")=0 {
-           w %RunJobId    
-           Quit $$$OK
-         }else{
-           ; k @gl
-         }
-        d ..ExecRunJobMethod(gl)
-        s %runjob="^mtempRunJob("""_%ClientIP_""","""_%RunJobId_""")"
-        w %RunJobId
-        Quit $$$OK
-     }
-     
-     
-     /// Проверка состояния процесса runJob
-     if $d(%request.Data("cspRunJobStatus")){
-        if %request.Get("cspRunJobStatus","")=""{
-	        w "{""error"":""Не указан идентификатор процесса"",""OK""=-1}"
-	        Quit $$$OK
-        } 
-        s %RunJobId=%request.Get("cspRunJobStatus","")
-        s gl="^mtempRunJob("""_%ClientIP_""","""_%RunJobId_""")"
-        if '$d(@gl){ w "{""error"":""Глобал с параметрами не найден"",""OK""=-1}"  Quit $$$OK  }
-        if '$d(@gl@("JOB")){ w "{""error"":""В глобале не указан идентификатор процесса"",""OK""=-1}"  Quit $$$OK  }
-        if $l(@gl@("JOB"))=0{ w "{""error"":""Идентификатор процесса пуст"",""OK""=-1}"  Quit $$$OK  }
-        if '$D(^$JOB(@gl@("JOB"))){  
-              if @gl@("OK")=1 {
-                 s ind="",count=0
-                 w "{"
-                 for {
-	                s ind=$o(@gl@(ind))  
-	                q:ind=""
-	                s count=count+1
-	                w:count'=1 ","
-	                w """"_$ZCVT(ind,"o","JS")_""":"""_$ZCVT(@gl@(ind),"o","JS")_""""
-                 }
-                 w "}"
-                 k @gl
-                 Quit $$$OK 
-               }
-               w "{""error"":""Процесс с номером "_@gl@("JOB")_" в системе не найден. "",""OK""=-1}"
-               k @gl
-               Quit $$$OK 
-        }
-        s @gl@("DatTim")=$ZDT($h)
-        s @gl@("Dat")=$p($h,",",1)
-        s @gl@("Tim")=$p($h,",",2)
-        s ind="",count=0
-        w "{"
-        for {
-	       s ind=$o(@gl@(ind))  
-	       q:ind=""
-	       s count=count+1
-	       w:count'=1 ","
-	       w """"_$ZCVT(ind,"o","JS")_""":"""_$ZCVT(@gl@(ind),"o","JS")_""""
-        }
-        w "}"
-        Quit $$$OK
-     }  
-      /// Уничтожение процесса runJob
-     if $d(%request.Data("cspKillRunJob")){
-        if %request.Get("cspKillRunJob","")=""{
-	        w "{""error"":""Не указан идентификатор процесса"",""OK""=-1}"
-	        Quit $$$OK
-        } 
-        s %RunJobId=%request.Get("cspKillRunJob","")
-        s gl="^mtempRunJob("""_%ClientIP_""","""_%RunJobId_""")"
-        if '$d(@gl){ w "{""error"":""Глобал с параметрами не найден"",""OK""=-1}"  Quit $$$OK  }
-        if '$d(@gl@("JOB")){ w "{""error"":""В глобале не указан идентификатор процесса"",""OK""=-1}"  Quit $$$OK  }
-        if $l(@gl@("JOB"))=0{ w "{""error"":""Идентификатор процесса пуст"",""OK""=-1}"  Quit $$$OK  }
-        if '$D(^$JOB(@gl@("JOB"))){   w "{""error"":""Процесс с номером "_@gl@("JOB")_" в системе не найден. "",""OK""=-1}" Quit $$$OK  }
-        d $zu(4,@gl@("JOB"))
-        s @gl@("OK")=-2
-        s ind="",count=0
-        w "{"
-        for {
-	       s ind=$o(@gl@(ind))  
-	       q:ind=""
-	       s count=count+1
-	       w:count'=1 ","
-	       w """"_$ZCVT(ind,"o","JS")_""":"""_$ZCVT(@gl@(ind),"o","JS")_""""
-        }
-        w "}"
-        Quit $$$OK
-     }  
-   
-     ; Выводим JS функции библиотеки
-     s ParentClassName1="%ZHTML.RunJob"
-     s MethodName="InitPreRunJob"
-     for ind=1:1:^oddDEF(ParentClassName1,"m",MethodName,30) {
-        d ..ExecFrag(^oddDEF(ParentClassName1,"m",MethodName,30,ind),"/*(",")*/") 
-        w $c(13,10)
-        ; w ^oddDEF(ParentClassName1,"m",MethodName,30,ind)_$c(13,10)
-     }
-     &js<
-        cspHttpServerMethod=callJob;
-     >
-     Quit $$$OK
-]]></Implementation>
-</Method>
-
-<Method name="ExecRunMethod">
-<ClassMethod>1</ClassMethod>
-<Implementation><![CDATA[
-     Set count=$Get(%request.Data("WARGC",1),0)
-     set args=count
-     s numArg=0
-     For i=1:1:count {
-          Set arg="WARG_"_i
-          If $Data(%request.Data(arg,1)) {
-               s numArg=numArg+1
-               set args(numArg) = %request.Data(arg,1)
-          } ElseIf $Data(%request.Data("WLIST"_i,1)) {
-               Set var="W"_i
-               For j=1:1:%request.Data("WLIST"_i,1) {
-                    If $Data(%request.Data(var,j)) {
-                         s numArg=numArg+1
-                         set args(numArg) = %request.Data(var,j)
-                    }
-               }
-          }
-     }
-     
-     if '$d(^oddDEF(%class,"m",%method,42)) {
-          do $classmethod(%class, %method, args...)
-     } Else {
-          w $classmethod(%class, %method, args...)
-     }
-]]></Implementation>
-</Method>
-
-<Method name="ExecRunJobMethod">
-<Description>
-запуск класс метода в паралельном потоке</Description>
-<ClassMethod>1</ClassMethod>
-<FormalSpec>gl</FormalSpec>
-<ReturnType>%String</ReturnType>
-<Implementation><![CDATA[
-     Set count=$Get(%request.Data("WARGC",1),0)
-     set @gl@("args")=count
-     s numArg=0
-     For i=1:1:count {
-        Set arg="WARG_"_i
-        If $Data(%request.Data(arg,1)) {
-           s numArg=numArg+1
-           set @gl@("args",numArg) = %request.Data(arg,1)
-        } ElseIf $Data(%request.Data("WLIST"_i,1)) {
-           Set var="W"_i
-           For j=1:1:%request.Data("WLIST"_i,1) {
-              If $Data(%request.Data(var,j)) {
-                 s numArg=numArg+1
-                 set @gl@("args",numArg) = %request.Data(var,j)
-              }
+	
+	if json'=""{
+	   #dim %RequestSrv as %ListOfDataTypes
+	   do ##class(%ZEN.Auxiliary.jsonProvider).%ConvertJSONToObject(json,,.%RequestSrv,1)
+       if %RequestSrv'="" {
+	       s SesKey=$System.Encryption.Base64Decode(%RequestSrv.GetAt(1))
+	       s ClassMethod=%RequestSrv.GetAt(2)
+	       s ClassMethod=$$$cspDecode(SesKey,ClassMethod)
+	       s ClassMethod=$lg(ClassMethod,1)
+	       ; s FromRunClassMethod=$p(ClassMethod,":",2)
+	       s ClassMethod=$p(ClassMethod,":",1)
+           s %method=$p(ClassMethod,".",$l(ClassMethod,"."))
+           s %class=$e(ClassMethod,1,$l(ClassMethod)-$l(%method)-1)
+           if %class="."{s %class=ParentClass}
+           Set count=%RequestSrv.Count()-2
+           set args=count
+           s numArg=0
+           for j=3:1:%RequestSrv.Count(){
+ 	          s numArg=numArg+1
+              set args(numArg) = %RequestSrv.GetAt(j)
            }
-        }
-     } 	
-     s @gl@("GBL")=gl
-     s @gl@("CLS")=%class
-     s @gl@("MET")=%method
-     s @gl@("IP")=%ClientIP
-     s @gl@("JobID")=%RunJobId
-     job ..runJobController(gl,%class, %method)
-     q gl
-]]></Implementation>
-</Method>
-
-<Method name="runJobController">
-<Description>
-Метод работает в паралельном потоке runJob</Description>
-<ClassMethod>1</ClassMethod>
-<FormalSpec>gl,class,method</FormalSpec>
-<ReturnType>%Status</ReturnType>
-<Implementation><![CDATA[
-   ; q:$d(@gl)  ; Если процесс уже работает, тогда выходим из процесса
-   s @gl@("JOB")=$job
-   s @gl@("DatTimStart")=$ZDT($h)
-   s @gl@("DatTim")=$ZDT($h)
-   s @gl@("Dat")=$p($h,",",1)
-   s @gl@("Tim")=$p($h,",",2)
-   s @gl@("OK")=0
-   s %runjob=gl
-   s ^deb($job)=gl
- s $ZTRAP="errRunJob"
-   set args=@gl@("args")
-   for numArg=1:1:@gl@("args") {
-	   s val=@gl@("args",numArg)
-	   set args(numArg) = val
-   }
-   if args>0 {
-     do $classmethod(class, method, args...)
-   }else{
-     do $classmethod(class, method)
-   }
-   s @gl@("DatTimStop")=$ZDT($h)
-   s @gl@("OK")=1
-   q
-errRunJob
-   s @gl@("OK")=1   
-   s @gl@("error")=""""_$ZCVT($ZE,"O","JS")_""""   
-   q
-]]></Implementation>
-</Method>
-
-<Method name="KillLOldGlobal">
-<Description>
-Удаление старых глобалов</Description>
-<ClassMethod>1</ClassMethod>
-<FormalSpec>RunJobId</FormalSpec>
-<Implementation><![CDATA[
-       s gl="^mtempRunJob("""_%ClientIP_""","""_RunJobId_""")"
-       s ind=""
-       for  {
-          s ind=$o(@gl@(ind))
-	      q:ind=""
-	      if '$d(@gl@(ind,"GBL"))   { k @gl@(ind)  continue } 
-	      if '$d(@gl@(ind,"JOB"))   { k @gl@(ind)  continue } 
-	      if '$d(@gl@(ind,"OK"))    { k @gl@(ind)  continue } 
-          if '$d(@gl@(ind,"DatTim")){ k @gl@(ind)  continue } 
-          if '$d(@gl@(ind,"Tim"))   { k @gl@(ind)  continue } 
-          if '$d(@gl@(ind,"Dat"))   { k @gl@(ind)  continue } 
-	      s PidJob=@gl@(ind,"JOB")
-          if '$DATA(^$JOB(PidJob))  { k @gl@(ind)  continue }
+           k j,numArg,%RequestSrv,count,ClassMethod
+           if '$d(^oddDEF(%class,"m",%method,70)) {
+               if '$d(^oddDEF(%class,"m",%method,42)) {
+                  do $classmethod(%class, %method, args...)
+               } Else {
+                  w $classmethod(%class, %method, args...)
+               }
+           }else{
+              if $d(^oddDEF(%class,"m",%method,30)){
+                for ind=1:1:^oddDEF(%class,"m",%method,30){
+                  w:ind'=1 $c(13,10)
+                  d ..ExecFrag(^oddDEF(%class,"m",%method,30,ind),"/*(",")*/")
+                }
+              }
+           }      
        }
+	   q 1	
+	}
+	
+	
+	d ..readJSFunctionFromCacheClass("%ZWeb.RunJob")
+	&js<
+	  var cspHttpServerMethod=SendServer;
+	  var cspCallHttpServerMethod=CallServer;
+	>
+    Quit $$$OK
 ]]></Implementation>
 </Method>
 
-<Method name="InitPreRunJob">
+<Method name="SendServer">
+<FormalSpec>MethodName</FormalSpec>
 <Language>javascript</Language>
 <WebMethod>1</WebMethod>
 <ClientMethod>1</ClientMethod>
 <Implementation><![CDATA[
-    //ddd var ClientIP="/*( s I=$ZU(111,0)  w $A(I,1)_"."_$A(I,2)_"."_$A(I,3)_"."_$A(I,4) k I )*/";
-     var IntervalRunJobMilSec=2000;
-     callJob=function(MethodName){
-       var GlobalIDString="";
-       var FunBegin=null;
-       var FunCallBack=null;
-       var FunProgress=null;
-       var async=false;
-       var arr=new Array();
-       if ((''+callJob.arguments[1])=='[object Arguments]'){
-          arr.push(callJob.arguments[0]);     
-          for(var ind in callJob.arguments[1]){if (callJob.arguments[1][ind]==undefined){continue;} arr.push(callJob.arguments[1][ind]); }   
-       }else{
-          for(var ind in callJob.arguments){if (callJob.arguments[ind]==undefined){continue;} arr.push(callJob.arguments[ind]); }   
+    var arr=new Array();
+    arr.push( "/*(   w $System.Encryption.Base64Encode(%session.Key)  )*/" );
+    if ((''+SendServer.arguments[1])=='[object Arguments]'){
+       arr.push(SendServer.arguments[0]);     
+       for(var ind in SendServer.arguments[1]){if (SendServer.arguments[1][ind]==undefined){continue;} arr.push(SendServer.arguments[1][ind]); }   
+    }else{
+       for(var ind in SendServer.arguments){if (SendServer.arguments[ind]==undefined){continue;} arr.push(SendServer.arguments[ind]); }   
+    }
+    var requestSendServer = new XMLHttpRequest();
+    requestSendServer.open('POST', '%25ZWeb.RunJob.cls', false);
+    requestSendServer.send(JSON.stringify(arr));  
+    requestSendServer.ontimeout = function (e) {
+          alert('Время ожидания ответа вышло!!!!');
+    }
+    if (requestSendServer.status !== 200) {
+        return {"error":requestSendServer.status}
+    }
+    return requestSendServer.responseText;
+]]></Implementation>
+</Method>
+
+<Method name="CallServer">
+<FormalSpec>MethodName</FormalSpec>
+<Language>javascript</Language>
+<WebMethod>1</WebMethod>
+<ClientMethod>1</ClientMethod>
+<Implementation><![CDATA[
+	var FunCallBack=null;
+    var arr=new Array();
+    arr.push( "/*(   w $System.Encryption.Base64Encode(%session.Key)  )*/" );
+    if ((''+CallServer.arguments[1])=='[object Arguments]'){
+       arr.push(CallServer.arguments[0]);     
+       for(var ind in CallServer.arguments[1]){
+	        if (CallServer.arguments[1][ind]==undefined){continue;} 
+	        if (typeof CallServer.arguments[ind] === 'function'){
+		       FunCallBack=CallServer.arguments[ind];
+	           continue;
+	        } 
+	        arr.push(CallServer.arguments[1][ind]); 
+	   }   
+    }else{
+       for(var ind in CallServer.arguments){
+	     if (CallServer.arguments[ind]==undefined){continue;} 
+	     if (typeof CallServer.arguments[ind] === 'function'){
+		    FunCallBack=CallServer.arguments[ind];
+	        continue;
+	     } 
+         arr.push(CallServer.arguments[ind]); 
+       }   
+    }
+    
+    var requestSendServer = new XMLHttpRequest();
+    requestSendServer.ontimeout = function (e) { alert('Время ожидания ответа вышло!!!!'); }
+	if (typeof FunCallBack === 'function'){
+       requestSendServer.open('POST', '%25ZWeb.RunJob.cls', true);
+       requestSendServer.onreadystatechange = function() {
+          if (this.readyState == 4 && this.status == 200) {
+              if (typeof FunCallBack === 'function'){
+                    FunCallBack(this.responseText);
+              }
+           };
+       };
+       requestSendServer.send(JSON.stringify(arr));  
+       return requestSendServer
+    }else{
+       requestSendServer.open('POST', '%25ZWeb.RunJob.cls', false);
+       requestSendServer.send(JSON.stringify(arr));  
+       if (requestSendServer.status !== 200) {
+           return {"error":requestSendServer.status}
        }
-       var isCallQuery=false;
-       if (arr.length>1){
-          if ((typeof arr[1] === 'object')||(Array.isArray(arr[1]))) {
-            isCallQuery=true;
-            obj=arr[1];
-            arr.splice(1, 1);
-            var count=0;
-            for (ind in obj){
-               count++;
-               if ((count==1)&&(typeof obj[ind] === 'function')){
-                  FunBegin=obj[ind];
-               } 
-               if ((count==2)&&(typeof obj[ind] === 'function')){
-                   FunProgress=obj[ind];
-               } 
-               if ((count==3)&&(typeof obj[ind] === 'function')){
-                  FunCallBack=obj[ind];
-               } 
-               if (typeof obj[ind]  === 'string'){
-                  GlobalIDString=obj[ind];
-               } 
-               if (typeof obj[ind]  === 'number'){
-                   IntervalRunJobMilSec=obj[ind];
+       return requestSendServer.responseText;
+    }
+]]></Implementation>
+</Method>
+
+<Method name="readJSFunctionFromCacheClass">
+<Description><![CDATA[
+<pre>
+
+Варианты параметров классов 
+ 1) [ Language = cache, WebMethod ]
+ 2) [ Language = javascript, WebMethod ]
+
+Пример классов , которые будут интерпритированы в JS функции:
+    ClassMethod test2()as %String [ Language = cache, WebMethod ]{ zw  q ""}
+    ClientMethod test3() [ Language = javascript, WebMethod ]{    alert('test3()');}
+    Property cspXMLHttp As %String [ ServerOnly = 1 ];
+    Property cspUseGetMethod As %Boolean [ InitialExpression = 0, ServerOnly = 1 ];
+    Property cspMozilla As %Boolean [ InitialExpression = "nill", ServerOnly = 1 ];
+   
+</pre>
+ <h2>Переписать  %Library.ClassDefinition на  <h2>]]></Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>ParentClassName="",MethodName="",DrawDescript=1</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	
+     s onEventFun=",onblur,onerror,onfocus,onload,onresize,onscroll,onbeforeunload,onhashchange,onlanguagechange,onmessage,onoffline,ononline,onpagehide,onpageshow,onpopstate,onrejectionhandled,onstorage,onunhandledrejection,onunload,onabort,oncancel,oncanplay,oncanplaythrough,onchange,onclick,onclose,oncontextmenu,oncuechange,ondblclick,ondrag,ondragend,ondragenter,ondragleave,ondragover,ondragstart,ondrop,ondurationchange,onemptied,onended,oninput,oninvalid,onkeydown,onkeypress,onkeyup,onloadeddata,onloadedmetadata,onloadstart,onmousedown,onmouseenter,onmouseleave,onmousemove,onmouseout,onmouseover,onmouseup,onmousewheel,onpause,onplay,onplaying,onprogress,onratechange,onreset,onseeked,onseeking,onselect,onshow,onstalled,onsubmit,onsuspend,ontimeupdate,ontoggle,onvolumechange,onwaiting,onauxclick,ongotpointercapture,onlostpointercapture,onpointercancel,onpointerdown,onpointerenter,onpointerleave,onpointermove,onpointerout,onpointerover,onpointerup,onbeforecopy,onbeforecut,onbeforepaste,oncopy,oncut,onpaste,onsearch,onselectstart,onwheel,onwebkitfullscreenchange,onwebkitfullscreenerror"
+     if $zObjClassMethod("%CompiledClass","%ExistsId",ParentClassName)'=1 {
+	  &js</*
+         Класс #(ParentClassName)# не найден  	  
+	  */>
+     }
+     // s ClassOref=##class(%Dictionary.ClassDefinition).%New(ParentClassName)
+     
+     s ClassOref=##class(%ClassDefinition).%OpenId(ParentClassName)
+     if ClassOref {
+       s ConstructMethod=$p(ParentClassName,".",$l(ParentClassName,"."))
+       s count=ClassOref.Properties.Count() 
+       for i=1:1:count {
+            s nam=ClassOref.Properties.GetAt(i).Name
+            continue:'$d(^oddDEF(ParentClassName,"a",nam,57))
+            continue:^oddDEF(ParentClassName,"a",nam,57)'=1
+            w "  var "_ClassOref.Properties.GetAt(i).Name_" "
+            if $d(^oddDEF(ParentClassName,"a",nam,31)) {
+                 s val=^oddDEF(ParentClassName,"a",nam,31)
+                 if val="""null""" w "=null;"_$c(13,10)  continue
+                 s typ=""
+                 if $d(^oddDEF(ParentClassName,"a",nam,5)) {
+                    s typ=^oddDEF(ParentClassName,"a",nam,5)
+                    if $e(typ,1,1)="%",$l(typ,".")=1 {
+                       s typ=$REPLACE(typ,"%","%Library.")
+                    }
+                 }   
+                 if typ="" {
+                     if $l(typ ," ")=1 { w "="_$e(val,2,$l(val)-1)_";"_$c(13,10)  continue }
+                    try {   x "w "_val   }catch(e){  w "="_$e(val,2,$l(val)-1)_";"_$c(13,10)  continue }
+                 }
+                 
+                 if typ="%Library.Boolean" {
+                      if $e(val,1,1)="""" {
+                         w "=" 
+                         try {   x "w "_val   }catch(e){  if +val=1 { w "=true"  }else     { w "=false" }   }
+                      }else {
+                        if val=1 { w "=true"  }else     { w "=false" }
+                      }
+                 }elseif  typ="%Library.Integer" {
+                     if $e(val,1,1)="""" {
+                         w "=" 
+                         try {   x "w "_val   }catch(e){  s val=+val  w val }
+                      } else {
+                          s val=+val  w val
+                      } 
+                 }else{
+	                 
+                     if $e(val,1,1)'="""" {
+                           w "=""" 
+                           try {   x "w "_val   }catch(e){  w val   }
+                           w """"
+                      }else {
+                         w "="_val
+                      } 
+                 }
+            }
+            w ";"_$c(13,10) 
+       }
+       s ConstructMethodIndex=""
+       s count=ClassOref.Methods.Count()
+       for i=1:1:count {
+            if (MethodName=""){
+               continue:$l(ClassOref.Methods.GetAt(i).Name,"OnPage")'=1
+               continue:ClassOref.Methods.GetAt(i).Name="OnPreHTTP"
+               continue:ClassOref.Methods.GetAt(i).Name="OnPostHTTP"
+               continue:ClassOref.Methods.GetAt(i).Name="getLibOne"
+               continue:ClassOref.Methods.GetAt(i).Name="GetJSMethodFromClientMethod"
+               continue:ClassOref.Methods.GetAt(i).Name="readJSFunctionFromCacheClass"
+            }else{
+                continue:ClassOref.Methods.GetAt(i).Name'=MethodName   
+            }
+           /// [ ServerOnly = 1 ]
+           // continue:'$d(^oddDEF(ParentClassName,"m",ClassOref.Methods.GetAt(i).Name,59))
+           // continue:^oddDEF(ParentClassName,"m",ClassOref.Methods.GetAt(i).Name,59)'=1
+           
+           /// [ WebMethod ]
+           continue:'$d(^oddDEF(ParentClassName,"m",ClassOref.Methods.GetAt(i).Name,51))
+           continue:^oddDEF(ParentClassName,"m",ClassOref.Methods.GetAt(i).Name,51)'=1
+          
+          if $ZCVT(ClassOref.Methods.GetAt(i).Name,"L")=$ZCVT(ConstructMethod,"L"){
+             s ConstructMethodIndex=i
+             continue    
+          }
+          
+          if DrawDescript=1 {
+             if $l(ClassOref.Methods.GetAt(i).Description)>0,ParentClassName'=##this{
+                w !,"/*",!
+                w $replace(ClassOref.Methods.GetAt(i).Description,"*/","-/-")
+                w !,"*/"
+             }
+          }
+          // Получаем JS представление Cache клиент метода
+           if ClassOref.Methods.GetAt(i).Language="javascript" {
+               w !,"var "_ClassOref.Methods.GetAt(i).Name_"=function("
+               s param=ClassOref.Methods.GetAt(i).FormalSpec
+               for ind=1:1:$l(param,","){
+                   s subParam=$p(param,",",ind)
+                   s subParam=$p(subParam,":",1)
+                   s subParam=$p(subParam,"=",1)
+                   w:ind'=1 ","
+                   w subParam
                }
+               w "){",!
+                 d ..ExecFrag(ClassOref.Methods.GetAt(i).Code,"/*(",")*/")
+                 // w ClassOref.Methods.GetAt(i).Code
+                 w !,"};"
+                
             }
-            if (GlobalIDString==''){
-	            async=true ;
-            }
+           // Получаем JS представление Cache класс метода
+           if ClassOref.Methods.GetAt(i).Language="cache" {
+                   w !,"var "_ClassOref.Methods.GetAt(i).Name_"=function(){",!
+                   ; if $d(^oddDEF(ParentClassName,"m",ClassOref.Methods.GetAt(i).Name,42)){ w "return "}
+                   s WEVENT=$$$cspEncode(%session.Key,$lb(ParentClassName_"."_ClassOref.Methods.GetAt(i).Name))
+                   w "   return cspHttpServerMethod('"_WEVENT_"',arguments);"
+                   w !,"};"
+           }
+                
+         }
+         // После отрисовки функций, создаем конструктор( если конечно он встретился ранее)
+         if ConstructMethodIndex'="" {
+           s i=ConstructMethodIndex
+           if ClassOref.Methods.GetAt(i).Language="javascript" {
+              d ..ExecFrag(ClassOref.Methods.GetAt(i).Code,"/*(",")*/")
+           }
+           if ClassOref.Methods.GetAt(i).Language="cache" {
+              s WEVENT=$$$cspEncode(%session.Key,$lb(ParentClassName_"."_ClassOref.Methods.GetAt(i).Name))
+              w " cspHttpServerMethod('"_WEVENT_"',arguments);"
+           }
          }
        }
-       var data = "WARGC=" + (arr.length - 1) + "&WEVENT=" + MethodName.replace(/&amp;/,'&');
-       for (i = 1; i < arr.length; i++) {
-          arg = arr[i];
-          if (typeof arg != "object") {
-               // Convert boolean to Cache value before sending
-               if (typeof arg == "boolean") arg = (arg ? 1 : 0);
-               data = data + "&WARG_" + i + "=" + encodeURIComponent(arg);
-          } else if (arg != null) {
-               n = 0;
-               for (var el in arg) {
-                    if (typeof arg[el] != "function") {
-                         data = data + "&W" + i + "=" + encodeURIComponent(arg[el]);
-                         n = n + 1;
-                    }
-               }
-               data = data + "&WLIST" + i + "=" + n;
-          }
-       }
-       if (isCallQuery==true){
-           var requestRunJob = new XMLHttpRequest();
-           requestRunJob.open('GET', '%25ZHTML.RunJob.cls/?cspRunJobTest='+encodeURIComponent(GlobalIDString), false);
-           requestRunJob.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-           requestRunJob.send(''); 
-           if (requestRunJob.responseText=="OK") {
-                requestRunJob.open('POST', '%25ZHTML.RunJob.cls/?cspIntRunJob='+GlobalIDString, false);
-                requestRunJob.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-                requestRunJob.send(data); 
-                requestRunJob.ontimeout = function (e) {
-                alert('Время ожидания ответа вышло!!!!');
-                return {"error":"Время ожидания ответа вышло"};
-             }
-             if (requestRunJob.status !== 200) {
-               return {"error":requestRunJob.status}
-             }
-             var idNewJob=requestRunJob.responseText;
-             if (FunBegin!=null){ FunBegin();  }
-             LoopProgress(FunCallBack,FunProgress,GlobalIDString,IntervalRunJobMilSec);
-           }
-       }else{
-	     if (async==false) {
-           var requestRunJob = new XMLHttpRequest();
-           requestRunJob.open('POST', '%25ZHTML.RunJob.cls/?cspIntRunMethod=1', false);
-           requestRunJob.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-           requestRunJob.send(data); 
-           requestRunJob.ontimeout = function (e) {
-             alert('Время ожидания ответа вышло!!!!');
-           }
-           if (requestRunJob.status !== 200) {
-	          return {"error":requestRunJob.status}
-           }
-	       idNewJob=requestRunJob.responseText;
-	     }else{
-		    /// интервал опроса состояния запроса (локально JS)
-		    var cspIntRunMethodRequest = new XMLHttpRequest();
-		    var myVarsetInterval=null;
-            var myStopFunctionsetInterval=function () { if (myVarsetInterval!=null){ clearTimeout(myVarsetInterval); }  }
-            if (FunProgress!=null){
-                  myVarsetInterval= setTimeout(function run() {
-                    FunProgress(cspIntRunMethodRequest);
-                    myVarsetInterval=setTimeout(run, IntervalRunJobMilSec);
-                  }, IntervalRunJobMilSec);
-            }
-            // Асинхронный запрос класс метода 
-            cspIntRunMethodRequest.open("POST", '%25ZHTML.RunJob.cls/?cspIntRunMethod=1', true);
-            cspIntRunMethodRequest.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-            cspIntRunMethodRequest.onreadystatechange = function() {
-              if (this.readyState == 4 && this.status == 200) {
-                 if (typeof FunCallBack === 'function'){
-                     FunCallBack(this.responseText);
-                 }
-                 if (myVarsetInterval!=null){
-                     myStopFunctionsetInterval();
-                 }
-              };
-            };
-            cspIntRunMethodRequest.send(data);
-            if (FunBegin!=null){ FunBegin();}
-            idNewJob=cspIntRunMethodRequest; 
-	     }
-	       
+       q ""
+]]></Implementation>
+</Method>
+
+<Method name="ExecFrag">
+<Description>
+Метод разбики исходного текста на Cache` код и HTML текст</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>SrcCode="",Beg="",End=""</FormalSpec>
+<Implementation><![CDATA[
+     q:SrcCode=""
+     q:Beg=""
+     q:End=""
+     for ind=1:1:$l(SrcCode,End){
+        s tmp=$p(SrcCode,End,ind)
+        s Html=$p(tmp,Beg,1)
+        s Code=$p(tmp,Beg,2)
+        w Html
+        TRY {
+           x Code
+        } CATCH ErrorHandle { 
+           zw ErrorHandle 
+        }
+     }
+]]></Implementation>
+</Method>
+
+<Method name="readJSObjectFromCacheClass">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>ParentClassName="",MethodName="",DrawDescript=1</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+     s onEventFun=",onblur,onerror,onfocus,onload,onresize,onscroll,onbeforeunload,onhashchange,onlanguagechange,onmessage,onoffline,ononline,onpagehide,onpageshow,onpopstate,onrejectionhandled,onstorage,onunhandledrejection,onunload,onabort,oncancel,oncanplay,oncanplaythrough,onchange,onclick,onclose,oncontextmenu,oncuechange,ondblclick,ondrag,ondragend,ondragenter,ondragleave,ondragover,ondragstart,ondrop,ondurationchange,onemptied,onended,oninput,oninvalid,onkeydown,onkeypress,onkeyup,onloadeddata,onloadedmetadata,onloadstart,onmousedown,onmouseenter,onmouseleave,onmousemove,onmouseout,onmouseover,onmouseup,onmousewheel,onpause,onplay,onplaying,onprogress,onratechange,onreset,onseeked,onseeking,onselect,onshow,onstalled,onsubmit,onsuspend,ontimeupdate,ontoggle,onvolumechange,onwaiting,onauxclick,ongotpointercapture,onlostpointercapture,onpointercancel,onpointerdown,onpointerenter,onpointerleave,onpointermove,onpointerout,onpointerover,onpointerup,onbeforecopy,onbeforecut,onbeforepaste,oncopy,oncut,onpaste,onsearch,onselectstart,onwheel,onwebkitfullscreenchange,onwebkitfullscreenerror"
+     if $zObjClassMethod("%CompiledClass","%ExistsId",ParentClassName)'=1 {
+	  &js</*
+         Класс #(ParentClassName)# не найден  	  
+	  */>
+     }
+     // s ClassOref=##class(%Dictionary.ClassDefinition).%New(ParentClassName)
+     
+     s ClassOref=##class(%ClassDefinition).%OpenId(ParentClassName)
+     if ClassOref {
+       s ConstructMethod=$p(ParentClassName,".",$l(ParentClassName,"."))
+       s tmp=""
+       w "var"
+       for ind=1:1:$l(ParentClassName,"."){
+	      s:tmp'="" tmp=tmp_"."
+	      s tmp=tmp_$p(ParentClassName,".",ind)
+	      &js< #(tmp)# = {}; >    
        }
        
-       return idNewJob;
-     }
-     
-     refJob=function(arr){
-       var GlobalIDString="";
-       var FunBegin=null;
-       var FunCallBack=null;
-       var FunProgress=null;
-       if ((typeof arr === 'object')||(Array.isArray(arr))) {
-	      var count=0;
-          for (ind in arr){
-               count++;
-               if ((count==1)&&(typeof arr[ind] === 'function')){
-                  FunBegin=arr[ind];
-               } 
-               if ((count==2)&&(typeof arr[ind] === 'function')){
-                   FunProgress=arr[ind];
-               } 
-               if ((count==3)&&(typeof arr[ind] === 'function')){
-                  FunCallBack=arr[ind];
-               } 
-               if (typeof arr[ind]  === 'string'){
-                  GlobalIDString=arr[ind];
-               } 
-               if (typeof arr[ind]  === 'number'){
-                   IntervalRunJobMilSec=arr[ind];
-               }
-          }
-          if (FunBegin!=null){ FunBegin();  }
-          LoopProgress(FunCallBack,FunProgress,GlobalIDString,IntervalRunJobMilSec);
-       }
-     }
-     
-     
-     
-     LoopProgress=function(FunCallBack,FunProgress,GlobalIDString,IntervalRunJobMilSec){
-	   var requestLoop = new XMLHttpRequest();
-       var myVarsetInterval;
-       myVarsetInterval= setTimeout(
-          function runJobLocalLoop() {
-           var ProgressObject={};
-           ProgressObject['OK']=0;
-           requestLoop.open('GET', '%25ZHTML.RunJob.cls/?cspRunJobStatus='+encodeURIComponent(GlobalIDString), false);
-           requestLoop.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-           requestLoop.send(''); 
-           if (requestLoop.responseText.length==0){   FunCallBack({"error":"Работа процесса прервана"});    clearTimeout(myVarsetInterval);  return;  }
-           try{ ProgressObject=JSON.parse(requestLoop.responseText) }catch (e) { 
-               FunCallBack(e);
-               clearTimeout(myVarsetInterval);  return;  
-           }
-           if ( JSON.stringify(ProgressObject)==="{}"){
-	              FunCallBack({"error":"Работа процесса прервана"});
-	              clearTimeout(myVarsetInterval);  return;  
-	       }
-           if (ProgressObject['OK']!=0){
-	            if (FunProgress!=null){  FunProgress(ProgressObject);  }
-	            if (FunCallBack!=null){  FunCallBack(ProgressObject);  }
-                clearTimeout(myVarsetInterval); 
-                return; 
+       s count=ClassOref.Properties.Count() 
+       for i=1:1:count {
+            s nam=ClassOref.Properties.GetAt(i).Name
+            continue:'$d(^oddDEF(ParentClassName,"a",nam,57))
+            continue:^oddDEF(ParentClassName,"a",nam,57)'=1
+            w ParentClassName_"."_ClassOref.Properties.GetAt(i).Name_" "
+            if $d(^oddDEF(ParentClassName,"a",nam,31)) {
+                 s val=^oddDEF(ParentClassName,"a",nam,31)
+                 if val="""null""" w "=null;"_$c(13,10)  continue
+                 s typ=""
+                 if $d(^oddDEF(ParentClassName,"a",nam,5)) {
+                    s typ=^oddDEF(ParentClassName,"a",nam,5)
+                    if $e(typ,1,1)="%",$l(typ,".")=1 {
+                       s typ=$REPLACE(typ,"%","%Library.")
+                    }
+                 }   
+                 if typ="" {
+                     if $l(typ ," ")=1 { w "="_$e(val,2,$l(val)-1)_";"_$c(13,10)  continue }
+                    try {   x "w "_val   }catch(e){  w "="_$e(val,2,$l(val)-1)_";"_$c(13,10)  continue }
+                 }
+                 
+                 if typ="%Library.Boolean" {
+                      if $e(val,1,1)="""" {
+                         w "=" 
+                         try {   x "w "_val   }catch(e){  if +val=1 { w "=true"  }else     { w "=false" }   }
+                      }else {
+                        if val=1 { w "=true"  }else     { w "=false" }
+                      }
+                 }elseif  typ="%Library.Integer" {
+                     if $e(val,1,1)="""" {
+                         w "=" 
+                         try {   x "w "_val   }catch(e){  s val=+val  w val }
+                      } else {
+                          s val=+val  w val
+                      } 
+                 }else{
+	                 
+                     if $e(val,1,1)'="""" {
+                           w "=""" 
+                           try {   x "w "_val   }catch(e){  w val   }
+                           w """"
+                      }else {
+                         w "="_val
+                      } 
+                 }
             }
-            if (FunProgress!=null){  FunProgress(ProgressObject);  }
-           myVarsetInterval=setTimeout(runJobLocalLoop, IntervalRunJobMilSec);
-       }, IntervalRunJobMilSec);
-     }
-
-
-     killJob=function(GlobalIDString){
-        var ProgressObject={};
-        var requestRunJob = new XMLHttpRequest();
-        requestRunJob.open('GET', '%25ZHTML.RunJob.cls/?cspKillRunJob='+GlobalIDString, false);
-        requestRunJob.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        requestRunJob.send(''); 
-        if (requestRunJob.responseText.length==0){  return {};  }
-        try{
-	       ProgressObject=JSON.parse(requestRunJob.responseText);
-        }catch (e) { 
-           return {} ;  
-        }
-        return ProgressObject;
-     }
-     
-     
-     /// Получить список запущеных процессов
-     getJobList=function(){
-        var ProgressObject={};
-        var requestRunJob = new XMLHttpRequest();
-        requestRunJob.open('GET', '%25ZHTML.RunJob.cls/?cspgetJobList=1', false);
-        requestRunJob.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        requestRunJob.send(''); 
-        if (requestRunJob.responseText.length==0){  return {};  }
-        try{
-	       ProgressObject=JSON.parse(requestRunJob.responseText);
-        }catch (e) { 
-           return {} ;  
-        }
-        return ProgressObject;
-     }
-     
-     /// Получить полный список 
-     getAllJobList=function(){
-	    var ProgressObject={};
-        var requestRunJob = new XMLHttpRequest();
-        requestRunJob.open('GET', '%25ZHTML.RunJob.cls/?cspgetAllJobList=1', false);
-        requestRunJob.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        requestRunJob.send(''); 
-        if (requestRunJob.responseText.length==0){  return {};  }
-        try{
-	       ProgressObject=JSON.parse(requestRunJob.responseText);
-        }catch (e) { 
-           return {} ;  
-        }
-        return ProgressObject;
-     }
-     
-     if (typeof cspCallHttpServerMethod !== 'function') {
-         cspCallHttpServerMethod=callJob;
-     }
+            w ";"_$c(13,10) 
+       }
+       s ConstructMethodIndex=""
+       s count=ClassOref.Methods.Count()
+       for i=1:1:count {
+            if (MethodName=""){
+               continue:$l(ClassOref.Methods.GetAt(i).Name,"OnPage")'=1
+               continue:ClassOref.Methods.GetAt(i).Name="OnPreHTTP"
+               continue:ClassOref.Methods.GetAt(i).Name="OnPostHTTP"
+               continue:ClassOref.Methods.GetAt(i).Name="getLibOne"
+               continue:ClassOref.Methods.GetAt(i).Name="GetJSMethodFromClientMethod"
+               continue:ClassOref.Methods.GetAt(i).Name="readJSFunctionFromCacheClass"
+            }else{
+                continue:ClassOref.Methods.GetAt(i).Name'=MethodName   
+            }
+           /// [ ServerOnly = 1 ]
+           // continue:'$d(^oddDEF(ParentClassName,"m",ClassOref.Methods.GetAt(i).Name,59))
+           // continue:^oddDEF(ParentClassName,"m",ClassOref.Methods.GetAt(i).Name,59)'=1
+           
+           /// [ WebMethod ]
+           continue:'$d(^oddDEF(ParentClassName,"m",ClassOref.Methods.GetAt(i).Name,51))
+           continue:^oddDEF(ParentClassName,"m",ClassOref.Methods.GetAt(i).Name,51)'=1
+          
+          if $ZCVT(ClassOref.Methods.GetAt(i).Name,"L")=$ZCVT(ConstructMethod,"L"){
+             s ConstructMethodIndex=i
+             continue    
+          }
+          
+          if DrawDescript=1 {
+             if $l(ClassOref.Methods.GetAt(i).Description)>0,ParentClassName'=##this{
+                w !,"/*",!
+                w $replace(ClassOref.Methods.GetAt(i).Description,"*/","-/-")
+                w !,"*/"
+             }
+          }
+          // Получаем JS представление Cache клиент метода
+           if ClassOref.Methods.GetAt(i).Language="javascript" {
+               w !,ParentClassName_"."_ClassOref.Methods.GetAt(i).Name_"=function("
+               s param=ClassOref.Methods.GetAt(i).FormalSpec
+               for ind=1:1:$l(param,","){
+                   s subParam=$p(param,",",ind)
+                   s subParam=$p(subParam,":",1)
+                   s subParam=$p(subParam,"=",1)
+                   w:ind'=1 ","
+                   w subParam
+               }
+               w "){",!
+                 d ..ExecFrag(ClassOref.Methods.GetAt(i).Code,"/*(",")*/")
+                 // w ClassOref.Methods.GetAt(i).Code
+                 w !,"};"
+                
+            }
+           // Получаем JS представление Cache класс метода
+           if ClassOref.Methods.GetAt(i).Language="cache" {
+                   w !,ParentClassName_"."_ClassOref.Methods.GetAt(i).Name_"=function(){",!
+                   ; if $d(^oddDEF(ParentClassName,"m",ClassOref.Methods.GetAt(i).Name,42)){ w "return "}
+                   s WEVENT=$$$cspEncode(%session.Key,$lb(ParentClassName_"."_ClassOref.Methods.GetAt(i).Name))
+                   w "   return cspHttpServerMethod('"_WEVENT_"',arguments);"
+                   w !,"};"
+           }
+                
+         }
+         // После отрисовки функций, создаем конструктор( если конечно он встретился ранее)
+         if ConstructMethodIndex'="" {
+           s i=ConstructMethodIndex
+           if ClassOref.Methods.GetAt(i).Language="javascript" {
+              d ..ExecFrag(ClassOref.Methods.GetAt(i).Code,"/*(",")*/")
+           }
+           if ClassOref.Methods.GetAt(i).Language="cache" {
+              s WEVENT=$$$cspEncode(%session.Key,$lb(ParentClassName_"."_ClassOref.Methods.GetAt(i).Name))
+              w " cspHttpServerMethod('"_WEVENT_"',arguments);"
+           }
+         }
+       }
+       q ""
 ]]></Implementation>
 </Method>
 </Class>
@@ -864,11 +794,8 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
    d %request.InsertCgiEnv("REMOTE_ADDR",$ZU(67, 15, $job))
    d %request.InsertCgiEnv("CONTENT_TYP","html") 
    d %request.InsertCgiEnv( "SERVER_NAME",$zu(110))
-   
-   ; C:\Cache2017.1\CSP\broker
-   
-   // s %response.CharSet="UTF8"
-   s %response.CharSet="CP1251"
+   ; s %response.CharSet="UTF8"
+   ; s %response.CharSet="CP1251"
    s %SYSLOG=1
    s %CSPsc=1
    ; Set %session.AppTimeout = 3600 
@@ -1058,33 +985,39 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
   ; Инициируем сесию ---
     d ..InitSession()
   
-  ; Выводим содержимое из каталога
-    s PathFileLocal=%request.CgiEnvs("PATH_TRANSLATED")
-    if ..GetRawHtml(PathFileLocal)=1  d ..clsConnect() q
- 
-   ; Переключаем область имен, если указан параметре "namespace"
-     if $l(%request.Get("namespace",""))'=0{  d $zu(5,%request.Get("namespace","")) }
-     d %request.InsertCgiEnv("NAMESPACE",$zu(5)) ; Запоминаем имя области имен
-   ; -------------------------------------------------------------------
-   s app=$SYSTEM.CSP.GetAppName(%request.CgiEnvs("QUERY_PAGE"))
-   s app="/"_$e(app,1,$l(app)-1)
-   &sql(
-      select TOP 1 NameLowerCase,NameSpace,Path,NameLowerCase
-      INTO  :NameLowerCase,:NameSpace,:Path,:NameLowerCase
-      from Security.Applications
-      where id=:app
-   )
-   if SQLCODE'=0{
-        USE $ZUTIL(53):(::"M") w "HTTP/1.1 400",$c(13,10)
-        w "Content-type: text/plain"_"; charset="_%response.CharSet,$c(13,10)
-        w "Connection: close"_$c(13,10,13,10)
-        d ..clsConnect()
-        q 
-   }
-   d $zu(5,NameSpace)
- 
- 
   
+   if $l(%request.Get("namespace",""))'=0{  
+       d $zu(5,%request.Get("namespace","")) 
+   }
+    
+   ; Выводим содержимое из каталога
+   s PathFileLocal=%request.CgiEnvs("PATH_TRANSLATED")
+   if ..GetRawHtml(PathFileLocal)=1  d ..clsConnect() q
+       
+       ; Переключаем область имен по Вэб приложению
+       d $zu(5,"%SYS") 
+       s app=$SYSTEM.CSP.GetAppName(%request.CgiEnvs("QUERY_PAGE"))
+       s app="/"_$e(app,1,$l(app)-1)
+       s app=$SYSTEM.CSP.GetAppName(%request.CgiEnvs("QUERY_PAGE"))
+       s app="/"_$e(app,1,$l(app)-1)
+       s SqlStrTmp=" select TOP 1 NameLowerCase,NameSpace,Path,NameLowerCase from Security.Applications where id=?"
+       s SQLobj=##class(%SQL.Statement).%New()
+       d SQLobj.%Prepare(SqlStrTmp)
+       s DataSet=SQLobj.%Execute(app)
+       s CountApp=0
+       s Path=""
+       while DataSet.%Next() { s CountApp=CountApp+1 s Path=DataSet.Path d $zu(5,DataSet.NameSpace) } 
+       d %request.InsertCgiEnv("NAMESPACE",$zu(5)) ; Запоминаем имя области имен
+       k SQLobj  
+       if CountApp=0{
+          USE $ZUTIL(53):(::"M") w "HTTP/1.1 400",$c(13,10)
+          w "Content-type: text/plain"_"; charset="_%response.CharSet,$c(13,10)
+          w "Connection: close"_$c(13,10,13,10)
+          d ..clsConnect()
+          q 
+       }
+       ; -------------------------------------------------------------------
+ 
    ; Имя класса
    s ClassNameCsp=$SYSTEM.CSP.GetClassName("/"_%request.CgiEnvs("QUERY_PAGE"))
    if ..GetClsHtml(ClassNameCsp,0)=1    d ..clsConnect() q 
@@ -1092,14 +1025,14 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
    s ShortPage=$e(%request.CgiEnvs("QUERY_PAGE"),$l(app),$l(%request.CgiEnvs("QUERY_PAGE")))
    s PathFileLocal=$tr(Path_ShortPage,"/","\")
    if ..GetRawHtml(PathFileLocal)=1  d ..clsConnect() q
-    
+  
+  
+   s %LastIO=$IO  u %LastIO::("^"_$zn) d ##class(%Device).ReDirectIO($$$YES)   
      ; 
      ;  Запрашиваемый ресурс не найден
         USE $ZUTIL(53):(::"M") w "HTTP/1.1 400",$c(13,10)
         w "Content-type: text/plain"_"; charset="_%response.CharSet,$c(13,10)
         w "Connection: close"_$c(13,10,13,10)
-       ; w !,ShortPage
-       ; w !,Path
         w !,"=================================" 
         w !,"=      Ресурс не найден        ="  
         w !,"=================================" 
@@ -1122,8 +1055,32 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
         w !,DispatchClass 
         w !,"OK"
         */
+       d ##class(%Device).ReDirectIO($$$NO)  u %LastIO
+       s ind="" 
+       for {
+	      s ind=$o(^||tmp(ind))   
+	      q:ind=""
+	      w $zcvt(^||tmp(ind),"o","CP1251")
+        }
+        k ^||tmp        
         d ..clsConnect()
         q
+]]></Implementation>
+</Method>
+
+<Method name="redirects">
+<Description>
+Публичные точки входа, использующиеся при перенаправлении ввода/вывода</Description>
+<Internal>1</Internal>
+<ClassMethod>1</ClassMethod>
+<Private>1</Private>
+<ProcedureBlock>0</ProcedureBlock>
+<Implementation><![CDATA[
+wstr(s) s ^||tmp($i(^||tmp))=s        q
+wchr(c)  s ^||tmp($i(^||tmp))=$c(c)   q
+wnl s ^||tmp($i(^||tmp))=$$$NL        q
+wff s ^||tmp($i(^||tmp))=$c(12)       q
+wtab(s) s ^||tmp($i(^||tmp))=s        q
 ]]></Implementation>
 </Method>
 
@@ -1155,6 +1112,7 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
    d %session.%Save()
    s $LI(^%cspSession(ipKey),15)="%ZWeb.Server:"_$job ;  Приложение 
    s $LI(^%cspSession(ipKey),18)=$job        ;  ID процесса
+   d %session.Unlock()
    d %session.%Save()
    q
 ]]></Implementation>
@@ -1404,15 +1362,6 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
 <FormalSpec>rawFileName</FormalSpec>
 <ReturnType>%Boolean</ReturnType>
 <Implementation><![CDATA[
- 
-  ; if $l($zcvt(rawFileName,"L"),"csp\broker")=2{
-  ;   s LocalPath=%request.GetCgiEnv("LOCAL_PATH") 
-  ;   s rawFileName=$Replace(rawFileName,LocalPath,"") 
-  ;   s rawFileName= $replace($p($zu(12),"\mgr\",1)_"/"_$zcvt(rawFileName,"L"),"/","\")
-  ;   d %request.InsertCgiEnv("PATH_TRANSLATED",rawFileName) 
-  ;   ;  <script type="text/javascript"  src='%ZWeb.Lib.js.cspbroker.cls'></script>
-  ;   ;  <script type="text/javascript"  src='%ZWeb.Lib.js.cspxmlhttp.cls'></script> 
-  ; }
       if ##class(%File).Exists(rawFileName)'=1 q 0
       ; старый вариант получения расширения
       s rashirenie=$ZCVT($p(rawFileName ,".", $l(rawFileName,".")),"L")   
@@ -1420,6 +1369,10 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
       w "HTTP/1.1 200",$c(13,10)
       w "Content-type: "_typ_"; "_%response.CharSet,$c(13,10)
       w "Connection: close"_$c(13,10,13,10)
+      if (typ["html"){ 
+         d ..parseHtmlPage(rawFileName,1)
+         q 1
+      }
       S stream=##class(%FileBinaryStream).%New()
       S stream.Filename=rawFileName 
       While 'stream.AtEnd  {
@@ -1433,123 +1386,55 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
 ]]></Implementation>
 </Method>
 
-<Method name="GetRawHtmlOld">
+<Method name="parseHtmlPage">
 <Description>
-Отправить клиенту файл с жесткого диска</Description>
+Парсим HTML текст заменяя системные тэги</Description>
 <ClassMethod>1</ClassMethod>
-<FormalSpec>rawFileName</FormalSpec>
-<ReturnType>%Boolean</ReturnType>
+<FormalSpec>rawFileName,isHtmlFile=1</FormalSpec>
+<ReturnType>%String</ReturnType>
 <Implementation><![CDATA[
-  // Замена пути к Cache библиотекам JS    
-  //     <script  type="text/javascript" src="/csp/broker/cspxmlhttp.js"></script>
-  //     <script  type="text/javascript" src="/csp/broker/cspbroker.js"></script>
-  if $l($zcvt(rawFileName,"L"),"csp\broker")=2{
-     s LocalPath=%request.GetCgiEnv("LOCAL_PATH") 
-     s rawFileName=$Replace(rawFileName,LocalPath,"") 
-     s rawFileName= $replace($p($zu(12),"\mgr\",1)_"/"_$zcvt(rawFileName,"L"),"/","\")
-     d %request.InsertCgiEnv("PATH_TRANSLATED",rawFileName) 
-     ;  <script type="text/javascript"  src='%ZWeb.Lib.js.cspbroker.cls'></script>
-     ;  <script type="text/javascript"  src='%ZWeb.Lib.js.cspxmlhttp.cls'></script> 
-  }
-  ; s ^deb($job)=rawFileName
-  s glHtml="^mtempRawHtmlFile"
-  s list="js,html,htm,csp,css"
-  s rashirenie=%request.GetCgiEnv("CONTENT_TYP") 
-  s typ=..ContentType("."_rashirenie) 
-  s file = ##class(%File).%New(rawFileName)
-  s ReadFileGlobal=1
-  // Если клобала с ресурсом нет, тогда создаем его
-  if '$d(@glHtml@(rawFileName)) {
-	  s ReadFileGlobal=0
-  }else{ 
-      ; если дата создания не соответствует дате в глобале, тогда перезагружаем глобал
-      if $lg(@glHtml@(rawFileName),2)'=file.DateCreated  s ReadFileGlobal=0 k @glHtml@(rawFileName)
-      ; если дата модификации не соответствует дате в глобале, тогда перезагружаем глобал
-      if $lg(@glHtml@(rawFileName),3)'=file.DateModified s ReadFileGlobal=0 k @glHtml@(rawFileName)
-      ; Если размер файла не соответствует файлу в глобеле
-      if $lg(@glHtml@(rawFileName),4)'=file.Size s ReadFileGlobal=0 k @glHtml@(rawFileName)
-  }
-  //s ReadFileGlobal=0 
-  if ReadFileGlobal=0 {
-    ///  Передаем RAW файл из каталога директории 
-    if ##class(%File).Exists(rawFileName)=1 {
-      ; старый вариант получения расширения
-      ; s rashirenie=$ZCVT($p(rawFileName ,".", $l(rawFileName,".")),"L")   
-      ; Новый вариант в строке запроса можно указать тип ответа Пример: http://localhost:6010/csp/user/User.CacheLibTest.cls/?typ=jpg
-      w "HTTP/1.1 200",$c(13,10)
-      w "Content-type: "_typ_"; "_%response.CharSet,$c(13,10)
-      w "Connection: close"_$c(13,10,13,10)
+      if isHtmlFile=1,$zObjClassMethod("%CompiledClass","%ExistsId","%ZWeb.RunJob")=1 {
+         &html<<script language='JavaScript' type='text/javascript' src="#($SYSTEM.CSP.GetDefaultApp($ZU(5)))#/#($zcvt("%ZWeb.RunJob","O","URL"))#.cls"></script>>
+      }
       S stream=##class(%FileBinaryStream).%New()
       S stream.Filename=rawFileName 
-      s numLine=0
-      s @glHtml@(rawFileName)=$lb(numLine,file.DateCreated,file.DateModified , file.Size,0)
-      if $l(list,rashirenie)=1 {
-         While 'stream.AtEnd  {
-	       s numLine=numLine+1
-	       s html=stream.Read(32000)
-           s @glHtml@(rawFileName,numLine)=html
-           s $LI(@glHtml@(rawFileName),1)=numLine
-           s $LI(@glHtml@(rawFileName),5)=$Lg(@glHtml@(rawFileName),5)+$l(html)
-           w html
-         }
-      }else{
-        if typ["html" {
-          ; if $zObjClassMethod("%CompiledClass","%ExistsId","%ZHTML.CacheLib")=1 {
-          ;    w "<script language='JavaScript' type='text/javascript' src='%25ZHTML.CacheLib.cls'></script>",!
-          ; }
-          if $zObjClassMethod("%CompiledClass","%ExistsId","%ZHTML.RunJob")=1 {
-             w "<script language='JavaScript' type='text/javascript' src='%25ZHTML.RunJob.cls'></script>",!
+      While 'stream.AtEnd  {
+	      s html=stream.Read(32000)
+	      s Beg1="#server("
+	      s Beg2="#call("
+	      s End=")#"
+	      s SrcCode=html
+          for {
+	          if $l(SrcCode,Beg1)>1{  s Beg=Beg1 }elseif $l(SrcCode,Beg2)>1{  s Beg=Beg2 }
+              s HtmlFrag=$e(SrcCode,1,$l($p(SrcCode,Beg,1)) ) 
+              s SrcCode=$e(SrcCode,$l(HtmlFrag)+1+$l(Beg),$l(SrcCode) ) 
+              s CodeFrag=$e(SrcCode,1, $l($p(SrcCode,End,1)) ) 
+              s SrcCode=$e(SrcCode,$l(CodeFrag)+1+$l(End),$l(SrcCode) ) 
+              d ..ExecWriteFrag(HtmlFrag,"#(",")#")
+              if $l(CodeFrag)>0{
+                 if Beg=Beg1 { w ..ParseServerFun(CodeFrag,"cspHttpServerMethod") }
+                 if Beg=Beg2 { w ..ParseServerFun(CodeFrag,"cspCallHttpServerMethod") }
+              }
+              q:SrcCode=""
           }
-        } 
-        While 'stream.AtEnd  {
-          s numLine=numLine+1
-          s html=stream.Read(32000)
-          s @glHtml@(rawFileName,numLine)=html
-          s $LI(@glHtml@(rawFileName),1)=numLine
-          s $LI(@glHtml@(rawFileName),5)=$Lg(@glHtml@(rawFileName),5)+$l(html)
-          d ..ExecFrag(html,"/*(",")*/") 
-        }
       }
       d stream.%Close()
       s stream=""
-      s file =""
-      q 1
-    }
-    q 0
-  }else{
-      w "HTTP/1.1 200",$c(13,10)
-      w "Content-type: "_typ_"; "_%response.CharSet,$c(13,10)
-      w "Connection: close"_$c(13,10,13,10)
-	  if $l(list,rashirenie)=1 {  
-          s numLine=""
-         for {
-	       s numLine=$o(@glHtml@(rawFileName,numLine))
-	       q:numLine=""  
-           s html=@glHtml@(rawFileName,numLine)
-           w html
-         }
-      }else{
-        if typ["html" {
-          ; if $zObjClassMethod("%CompiledClass","%ExistsId","%ZHTML.CacheLib")=1 {
-          ;    w "<script language='JavaScript' type='text/javascript' src='%25ZHTML.CacheLib.cls'></script>",!
-          ; }
-          if $zObjClassMethod("%CompiledClass","%ExistsId","%ZHTML.RunJob")=1 {
-             w "<script language='JavaScript' type='text/javascript' src='%25ZHTML.RunJob.cls'></script>",!
-          }
-        } 
-          s numLine="" 
-         for {
-	       s numLine=$o(@glHtml@(rawFileName,numLine))
-	       q:numLine=""  
-           s html=@glHtml@(rawFileName,numLine)
-           d ..ExecFrag(html,"/*(",")*/") 
-         }
-      }
-      s file =""  k file
-      q 1
-  }
-  s file =""  k file
-  q 0
+      q ""
+]]></Implementation>
+</Method>
+
+<Method name="ParseServerFun">
+<Description>
+Заменить содержимое #server( )# или #call( )#  на JS  функцию</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>CodeFrag="",JsFunName="cspHttpServerMethod"</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	S funName=$p(CodeFrag,"(",1)
+    s args=$e(CodeFrag,$l(funName)+2,$l(CodeFrag)-1)
+	w JsFunName_"('"_funName_"',"_args_")"
+	q ""
 ]]></Implementation>
 </Method>
 
@@ -1576,6 +1461,29 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
 ]]></Implementation>
 </Method>
 
+<Method name="ExecWriteFrag">
+<Description>
+Метод разбивки исходного текста на Cache` код и HTML текст
+Метод разбивки исходного текста на Cache` код и HTML текст</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>SrcCode="",Beg="",End=""</FormalSpec>
+<Implementation><![CDATA[
+      q:SrcCode=""   q:Beg=""    q:End="" 
+      s html=SrcCode
+      for {
+          s HtmlFrag=$e(SrcCode,1,$l($p(SrcCode,Beg,1)) ) 
+          w HtmlFrag
+          s SrcCode=$e(SrcCode,$l(HtmlFrag)+1+$l(Beg),$l(SrcCode) ) 
+          s CodeFrag=$e(SrcCode,1, $l($p(SrcCode,End,1)) ) 
+          s SrcCode=$e(SrcCode,$l(CodeFrag)+1+$l(End),$l(SrcCode) ) 
+          if $l(CodeFrag)>0{
+             TRY {  x "w """","_$tr(CodeFrag,$c(13,10),"   ")   } CATCH ErrorHandle {    zw ErrorHandle  }
+          }
+        q:SrcCode=""
+      }
+]]></Implementation>
+</Method>
+
 <Method name="GetClsHtml">
 <Description>
 Метод запуска класса</Description>
@@ -1588,6 +1496,8 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
       ;    s ClassName=$e(ClassName,1,$l(ClassName)-$l(".cls"))          
       ; }
         if $zObjClassMethod("%CompiledClass","%ExistsId",ClassName)=1 {
+          
+    s %LastIO=$IO  u %LastIO::("^"_$zn) d ##class(%Device).ReDirectIO($$$YES) 
              If $System.CLS.IsMthd(ClassName,"OnPreHTTP") {
                 ; try{  }CATCH err{  zw err           }
                 d $zObjClassMethod(ClassName,"OnPreHTTP")    
@@ -1610,8 +1520,7 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
             ; zw %response
             ; c 2:($job)  
             ; USE $ZUTIL(53):(::"M")
-            
-            
+
              w "Connection: close"_$c(13,10,13,10)
              try{ 
              if addLib=1 {
@@ -1625,6 +1534,14 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
              }
              d $zObjClassMethod(ClassName,"OnPage")   
              }CATCH err{ zw err }
+      
+             d ##class(%Device).ReDirectIO($$$NO)  u %LastIO
+             s ind="" for {
+	             s ind=$o(^||tmp(ind))   
+	             q:ind=""
+	             w $zcvt(^||tmp(ind),"o",%response.CharSet)
+             }
+             k ^||tmp
              d ..clsConnect()
              q 1
          }
