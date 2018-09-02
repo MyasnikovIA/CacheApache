@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Export generator="Cache" version="25">
+<Export generator="Cache" version="25" zv="Cache for Windows (x86-32) 2017.2 (Build 651U)" ts="2018-09-02 21:47:55">
 <Class name="%ZWeb.RunJob">
 <Super>%CSP.Page</Super>
+<TimeChanged>64893,76992.995263</TimeChanged>
 <TimeCreated>64891,36695.235768</TimeCreated>
 
 <Method name="OnPreHTTP">
@@ -165,7 +166,7 @@
        for(var ind in SendServer.arguments){if (SendServer.arguments[ind]==undefined){continue;} arr.push(SendServer.arguments[ind]); }   
     }
     var requestSendServer = new XMLHttpRequest();
-    requestSendServer.open('POST', '%25ZWeb.RunJob.cls', false);
+    requestSendServer.open('POST', '/*(   w $SYSTEM.CSP.GetDefaultApp($ZU(5))_"/"_$zcvt("%ZWeb.RunJob","O","URL")_".cls"  )*/', false);
     requestSendServer.send(JSON.stringify(arr));  
     requestSendServer.ontimeout = function (e) {
           alert('Время ожидания ответа вышло!!!!');
@@ -210,7 +211,9 @@
     var requestSendServer = new XMLHttpRequest();
     requestSendServer.ontimeout = function (e) { alert('Время ожидания ответа вышло!!!!'); }
 	if (typeof FunCallBack === 'function'){
-       requestSendServer.open('POST', '%25ZWeb.RunJob.cls', true);
+       //requestSendServer.open('POST', '%25ZWeb.RunJob.cls', true);
+       requestSendServer.open('POST', '/*(   w $SYSTEM.CSP.GetDefaultApp($ZU(5))_"/"_$zcvt("%ZWeb.RunJob","O","URL")_".cls"   )*/', true);
+  
        requestSendServer.onreadystatechange = function() {
           if (this.readyState == 4 && this.status == 200) {
               if (typeof FunCallBack === 'function'){
@@ -221,7 +224,9 @@
        requestSendServer.send(JSON.stringify(arr));  
        return requestSendServer
     }else{
-       requestSendServer.open('POST', '%25ZWeb.RunJob.cls', false);
+      // requestSendServer.open('POST', '%25ZWeb.RunJob.cls', false);
+      requestSendServer.open('POST', '/*( w $SYSTEM.CSP.GetDefaultApp($ZU(5))_"/"_$zcvt("%ZWeb.RunJob","O","URL")_".cls")*/', false);
+    
        requestSendServer.send(JSON.stringify(arr));  
        if (requestSendServer.status !== 200) {
            return {"error":requestSendServer.status}
@@ -575,6 +580,7 @@
   d ##class(%ZWeb.Server).Stop()
 </example>]]></Description>
 <Super>%RegisteredObject</Super>
+<TimeChanged>64893,27673.17219</TimeChanged>
 <TimeCreated>64772,22000.244656</TimeCreated>
 
 <Method name="ExportUDL">
@@ -844,7 +850,7 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
    .      .   	      s FallLoad=1
    .      .        }
    .      .        if $l(zapros,"csp/broker/cspbroker.js")=2 {
-   .      .           s zapros=$replace(zapros,"cspbroker.js", "%25ZHTML.RunJob.cls")
+   .      .           s zapros=$replace(zapros,"cspbroker.js", "%25ZWeb.RunJob.cls")
    .      .        }
    .      .   
    .      .   Do %request.InsertCgiEnv("PATH_TRANSLATED",$tr(pathHost_"/"_zapros,"/","\"))
@@ -1394,7 +1400,7 @@ wtab(s) s ^||tmp($i(^||tmp))=s        q
 <ReturnType>%String</ReturnType>
 <Implementation><![CDATA[
       if isHtmlFile=1,$zObjClassMethod("%CompiledClass","%ExistsId","%ZWeb.RunJob")=1 {
-         &html<<script language='JavaScript' type='text/javascript' src="#($SYSTEM.CSP.GetDefaultApp($ZU(5)))#/#($zcvt("%ZWeb.RunJob","O","URL"))#.cls"></script>>
+         &html<<script language="JavaScript" type="text/javascript" src="#($SYSTEM.CSP.GetDefaultApp($ZU(5)))#/#($zcvt("%ZWeb.RunJob","O","URL"))#.cls"></script> >
       }
       S stream=##class(%FileBinaryStream).%New()
       S stream.Filename=rawFileName 
@@ -1523,15 +1529,15 @@ wtab(s) s ^||tmp($i(^||tmp))=s        q
 
              w "Connection: close"_$c(13,10,13,10)
              try{ 
-             if addLib=1 {
+            ; if addLib=1 {
                 if %response.ContentType["html" {
                   ;   <script  type='text/javascript' src='/csp/broker/cspxmlhttp.js'></script>
                   ;   <script  type='text/javascript' src='/csp/broker/cspbroker.js'></script>
-                ;  if $zObjClassMethod("%CompiledClass","%ExistsId","%ZHTML.RunJob")=1 {
-                ;    w "<script language='JavaScript' type='text/javascript' src='%25ZHTML.RunJob.cls'></script>"
-                ;  }
+                   if $zObjClassMethod("%CompiledClass","%ExistsId","%ZWeb.RunJob")=1 {
+                     &html<<script language="JavaScript" type="text/javascript" src="#($SYSTEM.CSP.GetDefaultApp($ZU(5)))#/#($zcvt("%ZWeb.RunJob","O","URL"))#.cls"></script> >
+                  }
                }
-             }
+            ; }
              d $zObjClassMethod(ClassName,"OnPage")   
              }CATCH err{ zw err }
       
