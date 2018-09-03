@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Export generator="Cache" version="25" zv="Cache for Windows (x86-32) 2017.2 (Build 651U)" ts="2018-09-02 21:47:55">
+<Export generator="Cache" version="25" zv="Cache for Windows (x86-32) 2017.2 (Build 651U)" ts="2018-09-03 23:14:44">
 <Class name="%ZWeb.RunJob">
 <Super>%CSP.Page</Super>
-<TimeChanged>64893,76992.995263</TimeChanged>
+<TimeChanged>64894,77855.535674</TimeChanged>
 <TimeCreated>64891,36695.235768</TimeCreated>
 
 <Method name="OnPreHTTP">
@@ -20,8 +20,8 @@
 <ClassMethod>1</ClassMethod>
 <ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
-#define cspEncode(%k,%d)        $translate($System.Encryption.AESBase64Encode(%d,%k),"+=/"_$char(32,13,10),"_-$")
-#define cspDecode(%k,%d)        $System.Encryption.AESBase64Decode($translate(%d,"_-$","+=/"),%k)
+    #define cspEncode(%k,%d)        $translate($System.Encryption.AESBase64Encode(%d,%k),"+=/"_$char(32,13,10),"_-$")
+    #define cspDecode(%k,%d)        $System.Encryption.AESBase64Decode($translate(%d,"_-$","+=/"),%k)
 	
 	 /// Подключение класса и интерпритация его как JS библиотек
     if %request.Get("include","")'=""{
@@ -580,7 +580,7 @@
   d ##class(%ZWeb.Server).Stop()
 </example>]]></Description>
 <Super>%RegisteredObject</Super>
-<TimeChanged>64893,27673.17219</TimeChanged>
+<TimeChanged>64894,83664.398998</TimeChanged>
 <TimeCreated>64772,22000.244656</TimeCreated>
 
 <Method name="ExportUDL">
@@ -1074,22 +1074,6 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
 ]]></Implementation>
 </Method>
 
-<Method name="redirects">
-<Description>
-Публичные точки входа, использующиеся при перенаправлении ввода/вывода</Description>
-<Internal>1</Internal>
-<ClassMethod>1</ClassMethod>
-<Private>1</Private>
-<ProcedureBlock>0</ProcedureBlock>
-<Implementation><![CDATA[
-wstr(s) s ^||tmp($i(^||tmp))=s        q
-wchr(c)  s ^||tmp($i(^||tmp))=$c(c)   q
-wnl s ^||tmp($i(^||tmp))=$$$NL        q
-wff s ^||tmp($i(^||tmp))=$c(12)       q
-wtab(s) s ^||tmp($i(^||tmp))=s        q
-]]></Implementation>
-</Method>
-
 <Method name="InitSession">
 <Description>
 инициализации сесии</Description>
@@ -1394,7 +1378,7 @@ wtab(s) s ^||tmp($i(^||tmp))=s        q
 
 <Method name="parseHtmlPage">
 <Description>
-Парсим HTML текст заменяя системные тэги</Description>
+Парсим HTML текст заменяя системные тэги !!!</Description>
 <ClassMethod>1</ClassMethod>
 <FormalSpec>rawFileName,isHtmlFile=1</FormalSpec>
 <ReturnType>%String</ReturnType>
@@ -1406,23 +1390,30 @@ wtab(s) s ^||tmp($i(^||tmp))=s        q
       S stream.Filename=rawFileName 
       While 'stream.AtEnd  {
 	      s html=stream.Read(32000)
+	      s html=..ExecFragVar(html,"<server>","</server>","")
+	      s html=..ExecFragVar(html,"#(",")#"," w """",")
+	      s html=..ReplaceFragVar(html,"#server(",")#","cspHttpServerMethod")
+	      s html=..ReplaceFragVar(html,"#call(",")#","cspCallHttpServerMethod")
+	     
+	      w html
+	       /*
 	      s Beg1="#server("
 	      s Beg2="#call("
 	      s End=")#"
 	      s SrcCode=html
           for {
-	          if $l(SrcCode,Beg1)>1{  s Beg=Beg1 }elseif $l(SrcCode,Beg2)>1{  s Beg=Beg2 }
+	          if $l(SrcCode,Beg1)>1{  s Beg=Beg1 }else{  s Beg=Beg2 }
               s HtmlFrag=$e(SrcCode,1,$l($p(SrcCode,Beg,1)) ) 
               s SrcCode=$e(SrcCode,$l(HtmlFrag)+1+$l(Beg),$l(SrcCode) ) 
               s CodeFrag=$e(SrcCode,1, $l($p(SrcCode,End,1)) ) 
               s SrcCode=$e(SrcCode,$l(CodeFrag)+1+$l(End),$l(SrcCode) ) 
-              d ..ExecWriteFrag(HtmlFrag,"#(",")#")
               if $l(CodeFrag)>0{
                  if Beg=Beg1 { w ..ParseServerFun(CodeFrag,"cspHttpServerMethod") }
                  if Beg=Beg2 { w ..ParseServerFun(CodeFrag,"cspCallHttpServerMethod") }
               }
               q:SrcCode=""
           }
+          */
       }
       d stream.%Close()
       s stream=""
@@ -1502,8 +1493,8 @@ wtab(s) s ^||tmp($i(^||tmp))=s        q
       ;    s ClassName=$e(ClassName,1,$l(ClassName)-$l(".cls"))          
       ; }
         if $zObjClassMethod("%CompiledClass","%ExistsId",ClassName)=1 {
-          
-    s %LastIO=$IO  u %LastIO::("^"_$zn) d ##class(%Device).ReDirectIO($$$YES) 
+       k ^||tmpLocal
+       s %LastIO=$IO  u %LastIO::("^"_$zn) d ##class(%Device).ReDirectIO($$$YES) 
              If $System.CLS.IsMthd(ClassName,"OnPreHTTP") {
                 ; try{  }CATCH err{  zw err           }
                 d $zObjClassMethod(ClassName,"OnPreHTTP")    
@@ -1535,7 +1526,7 @@ wtab(s) s ^||tmp($i(^||tmp))=s        q
                   ;   <script  type='text/javascript' src='/csp/broker/cspbroker.js'></script>
                    if $zObjClassMethod("%CompiledClass","%ExistsId","%ZWeb.RunJob")=1 {
                      &html<<script language="JavaScript" type="text/javascript" src="#($SYSTEM.CSP.GetDefaultApp($ZU(5)))#/#($zcvt("%ZWeb.RunJob","O","URL"))#.cls"></script> >
-                  }
+                   }
                }
             ; }
              d $zObjClassMethod(ClassName,"OnPage")   
@@ -1543,12 +1534,16 @@ wtab(s) s ^||tmp($i(^||tmp))=s        q
       
              d ##class(%Device).ReDirectIO($$$NO)  u %LastIO
              s ind="" for {
-	             s ind=$o(^||tmp(ind))   
+	             s ind=$o(^||tmpLocal(ind))   
 	             q:ind=""
-	             w $zcvt(^||tmp(ind),"o",%response.CharSet)
+	             if %response.ContentType["html" {
+	                w $zcvt(^||tmpLocal(ind),"o",%response.CharSet)
+	             }else{
+		            s html=$zcvt(^||tmpLocal(ind),"o",%response.CharSet)
+		            w html
+	             }
              }
-             k ^||tmp
-             d ..clsConnect()
+             k ^||tmpLocal
              q 1
          }
       }   
@@ -1729,6 +1724,96 @@ ErrOnPage
    w !,$ze,!
    w *-1,!
    q 1
+]]></Implementation>
+</Method>
+
+<Method name="ExecFragVar">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>SrcCode="",Beg="",End="",AddCode=""</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+      q:SrcCode="" ""   q:Beg="" SrcCode     q:End="" SrcCode
+      if $l(SrcCode,Beg)=1   q SrcCode
+      s ResultText=""
+      k ^||tmpLocal
+      s %LastIO=$IO  u %LastIO::("^"_$zn) d ##class(%Device).ReDirectIO($$$YES)   
+      s ResultText=""
+      s html=SrcCode
+      for {
+          s HtmlFrag=$e(SrcCode,1,$l($p(SrcCode,Beg,1)) ) 
+          w HtmlFrag
+          s SrcCode=$e(SrcCode,$l(HtmlFrag)+1+$l(Beg),$l(SrcCode) ) 
+          s CodeFrag=$e(SrcCode,1, $l($p(SrcCode,End,1)) ) 
+          s SrcCode=$e(SrcCode,$l(CodeFrag)+1+$l(End),$l(SrcCode) ) 
+          if $l(CodeFrag)>0{
+             TRY {  x AddCode_"  "_$tr(CodeFrag,$c(13,10),"   ")   } CATCH ErrorHandle {  w !,"SRC:"_CodeFrag,!  zw ErrorHandle  }
+          }
+        q:SrcCode=""
+      }
+      d ##class(%Device).ReDirectIO($$$NO)  u %LastIO
+      s ind="" , count=0
+      for {
+	     s ind=$o(^||tmpLocal(ind))   
+	     q:ind=""
+	     ; s count=count+1
+	     ; s:count'=1 ResultText=ResultText_$c(13,10)
+	     s ResultText=ResultText_^||tmpLocal(ind)
+	  } 
+      k ^||tmpLocal
+      q ResultText
+]]></Implementation>
+</Method>
+
+<Method name="ReplaceFragVar">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>SrcCode="",Beg="",End="",AddCode=""</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+      q:SrcCode="" ""   q:Beg="" SrcCode     q:End="" SrcCode
+      if $l(SrcCode,Beg)=1   q SrcCode
+      s ResultText=""
+      k ^||tmpLocal
+      s %LastIO=$IO  u %LastIO::("^"_$zn) d ##class(%Device).ReDirectIO($$$YES)   
+      s ResultText=""
+      s html=SrcCode
+      for {
+          s HtmlFrag=$e(SrcCode,1,$l($p(SrcCode,Beg,1)) ) 
+          w HtmlFrag
+          s SrcCode=$e(SrcCode,$l(HtmlFrag)+1+$l(Beg),$l(SrcCode) ) 
+          s CodeFrag=$e(SrcCode,1, $l($p(SrcCode,End,1)) ) 
+          s SrcCode=$e(SrcCode,$l(CodeFrag)+1+$l(End),$l(SrcCode) ) 
+          if $l(CodeFrag)>0{
+	         w ..ParseServerFun(CodeFrag,AddCode) 
+          }
+        q:SrcCode=""
+      }
+      d ##class(%Device).ReDirectIO($$$NO)  u %LastIO
+      s ind="" , count=0
+      for {
+	     s ind=$o(^||tmpLocal(ind))   
+	     q:ind=""
+	     ; s count=count+1
+	     ; s:count'=1 ResultText=ResultText_$c(13,10)
+	     s ResultText=ResultText_^||tmpLocal(ind)
+	  } 
+      k ^||tmpLocal
+      q ResultText
+]]></Implementation>
+</Method>
+
+<Method name="redirects">
+<Description>
+Публичные точки входа, использующиеся при перенаправлении ввода/вывода</Description>
+<Internal>1</Internal>
+<ClassMethod>1</ClassMethod>
+<Private>1</Private>
+<ProcedureBlock>0</ProcedureBlock>
+<Implementation><![CDATA[
+wstr(s) s ^||tmpLocal($i(^||tmpLocal))=s        q
+wchr(c) s ^||tmpLocal($i(^||tmpLocal))=$c(c)    q
+wnl s ^||tmpLocal($i(^||tmpLocal))=$$$NL        q
+wff s ^||tmpLocal($i(^||tmpLocal))=$c(12)       q
+wtab(s) s ^||tmpLocal($i(^||tmpLocal))=s        q
 ]]></Implementation>
 </Method>
 </Class>
