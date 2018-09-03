@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Export generator="Cache" version="25" zv="Cache for Windows (x86-32) 2017.2 (Build 651U)" ts="2018-09-03 23:14:44">
+<Export generator="Cache" version="25" zv="Cache for Windows (x86-32) 2017.2 (Build 651U)" ts="2018-09-03 23:39:21">
 <Class name="%ZWeb.RunJob">
 <Super>%CSP.Page</Super>
 <TimeChanged>64894,77855.535674</TimeChanged>
@@ -580,7 +580,7 @@
   d ##class(%ZWeb.Server).Stop()
 </example>]]></Description>
 <Super>%RegisteredObject</Super>
-<TimeChanged>64894,83664.398998</TimeChanged>
+<TimeChanged>64894,85002.860543</TimeChanged>
 <TimeCreated>64772,22000.244656</TimeCreated>
 
 <Method name="ExportUDL">
@@ -1026,7 +1026,7 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
  
    ; Имя класса
    s ClassNameCsp=$SYSTEM.CSP.GetClassName("/"_%request.CgiEnvs("QUERY_PAGE"))
-   if ..GetClsHtml(ClassNameCsp,0)=1    d ..clsConnect() q 
+   if ..GetClsHtml(ClassNameCsp,0,0)=1    d ..clsConnect() q 
   
    s ShortPage=$e(%request.CgiEnvs("QUERY_PAGE"),$l(app),$l(%request.CgiEnvs("QUERY_PAGE")))
    s PathFileLocal=$tr(Path_ShortPage,"/","\")
@@ -1394,27 +1394,8 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
 	      s html=..ExecFragVar(html,"#(",")#"," w """",")
 	      s html=..ReplaceFragVar(html,"#server(",")#","cspHttpServerMethod")
 	      s html=..ReplaceFragVar(html,"#call(",")#","cspCallHttpServerMethod")
-	     
 	      w html
-	       /*
-	      s Beg1="#server("
-	      s Beg2="#call("
-	      s End=")#"
-	      s SrcCode=html
-          for {
-	          if $l(SrcCode,Beg1)>1{  s Beg=Beg1 }else{  s Beg=Beg2 }
-              s HtmlFrag=$e(SrcCode,1,$l($p(SrcCode,Beg,1)) ) 
-              s SrcCode=$e(SrcCode,$l(HtmlFrag)+1+$l(Beg),$l(SrcCode) ) 
-              s CodeFrag=$e(SrcCode,1, $l($p(SrcCode,End,1)) ) 
-              s SrcCode=$e(SrcCode,$l(CodeFrag)+1+$l(End),$l(SrcCode) ) 
-              if $l(CodeFrag)>0{
-                 if Beg=Beg1 { w ..ParseServerFun(CodeFrag,"cspHttpServerMethod") }
-                 if Beg=Beg2 { w ..ParseServerFun(CodeFrag,"cspCallHttpServerMethod") }
-              }
-              q:SrcCode=""
-          }
-          */
-      }
+	  }
       d stream.%Close()
       s stream=""
       q ""
@@ -1485,7 +1466,7 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
 <Description>
 Метод запуска класса</Description>
 <ClassMethod>1</ClassMethod>
-<FormalSpec>ClassName,addLib=0</FormalSpec>
+<FormalSpec>ClassName,addLib=0,ReadFromBuff=1</FormalSpec>
 <ReturnType>%Boolean</ReturnType>
 <Implementation><![CDATA[
     if $l(ClassName)'=0 {
@@ -1493,9 +1474,10 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
       ;    s ClassName=$e(ClassName,1,$l(ClassName)-$l(".cls"))          
       ; }
         if $zObjClassMethod("%CompiledClass","%ExistsId",ClassName)=1 {
-       k ^||tmpLocal
-       s %LastIO=$IO  u %LastIO::("^"_$zn) d ##class(%Device).ReDirectIO($$$YES) 
-             If $System.CLS.IsMthd(ClassName,"OnPreHTTP") {
+	   if ReadFromBuff=1{     
+         k ^||tmpLocal
+         s %LastIO=$IO  u %LastIO::("^"_$zn) d ##class(%Device).ReDirectIO($$$YES) 
+	   }      If $System.CLS.IsMthd(ClassName,"OnPreHTTP") {
                 ; try{  }CATCH err{  zw err           }
                 d $zObjClassMethod(ClassName,"OnPreHTTP")    
              }
@@ -1524,14 +1506,15 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
                 if %response.ContentType["html" {
                   ;   <script  type='text/javascript' src='/csp/broker/cspxmlhttp.js'></script>
                   ;   <script  type='text/javascript' src='/csp/broker/cspbroker.js'></script>
-                   if $zObjClassMethod("%CompiledClass","%ExistsId","%ZWeb.RunJob")=1 {
-                     &html<<script language="JavaScript" type="text/javascript" src="#($SYSTEM.CSP.GetDefaultApp($ZU(5)))#/#($zcvt("%ZWeb.RunJob","O","URL"))#.cls"></script> >
-                   }
+                 ;  if $zObjClassMethod("%CompiledClass","%ExistsId","%ZWeb.RunJob")=1 {
+                 ;    &html<<script language="JavaScript" type="text/javascript" src="#($SYSTEM.CSP.GetDefaultApp($ZU(5)))#/#($zcvt("%ZWeb.RunJob","O","URL"))#.cls"></script> >
+                 ;  }
                }
             ; }
              d $zObjClassMethod(ClassName,"OnPage")   
              }CATCH err{ zw err }
       
+          if ReadFromBuff=1{     
              d ##class(%Device).ReDirectIO($$$NO)  u %LastIO
              s ind="" for {
 	             s ind=$o(^||tmpLocal(ind))   
@@ -1544,7 +1527,8 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
 	             }
              }
              k ^||tmpLocal
-             q 1
+          }
+          q 1
          }
       }   
       q 0
