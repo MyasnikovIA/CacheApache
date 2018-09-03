@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Export generator="Cache" version="25" zv="Cache for Windows (x86-32) 2017.2 (Build 651U)" ts="2018-09-03 23:39:21">
+<Export generator="Cache" version="25" zv="Cache for Windows (x86-32) 2017.2 (Build 651U)" ts="2018-09-03 23:49:17">
 <Class name="%ZWeb.RunJob">
 <Super>%CSP.Page</Super>
 <TimeChanged>64894,77855.535674</TimeChanged>
@@ -580,7 +580,7 @@
   d ##class(%ZWeb.Server).Stop()
 </example>]]></Description>
 <Super>%RegisteredObject</Super>
-<TimeChanged>64894,85002.860543</TimeChanged>
+<TimeChanged>64894,85719.341001</TimeChanged>
 <TimeCreated>64772,22000.244656</TimeCreated>
 
 <Method name="ExportUDL">
@@ -1411,6 +1411,9 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
 <Implementation><![CDATA[
 	S funName=$p(CodeFrag,"(",1)
     s args=$e(CodeFrag,$l(funName)+2,$l(CodeFrag)-1)
+    if $d(%session){
+      s funName=$$$cspEncode(%session.Key,$lb(funName))
+    }             
 	w JsFunName_"('"_funName_"',"_args_")"
 	q ""
 ]]></Implementation>
