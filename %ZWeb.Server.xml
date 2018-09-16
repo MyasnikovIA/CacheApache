@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Export generator="Cache" version="25" zv="Cache for Windows (x86-32) 2017.2 (Build 651U)" ts="2018-09-03 23:49:17">
+<Export generator="Cache" version="25">
 <Class name="%ZWeb.RunJob">
 <Super>%CSP.Page</Super>
-<TimeChanged>64894,77855.535674</TimeChanged>
 <TimeCreated>64891,36695.235768</TimeCreated>
 
 <Method name="OnPreHTTP">
@@ -580,7 +579,6 @@
   d ##class(%ZWeb.Server).Stop()
 </example>]]></Description>
 <Super>%RegisteredObject</Super>
-<TimeChanged>64894,85719.341001</TimeChanged>
 <TimeCreated>64772,22000.244656</TimeCreated>
 
 <Method name="ExportUDL">
@@ -972,67 +970,20 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
    }
   ;  если обрабатываем  терминальный запрос , тогда выходим
     q:isTerminal=1
-  ;
-  ; Запоминаем расширение файла как тип содержимого
-    s typ=$p(zapros ,".", $l(zapros,"."))
-    s typ=$p(typ,"/?",1)
-    s typ=$p(typ,"/",1)
-    d %request.InsertCgiEnv("CONTENT_TYP",typ)
+ 
+ 
   ; 
   ; USE $ZUTIL(53):(::"M") w "HTTP/1.1 200",$c(13,10),"Content-type: text/plain","",$c(13,10),"Connection: close"_$c(13,10,13,10)
   ; Разбираем Куки в параметры
    d ..ParseСookie()
   ; Разбираем параметры из URL строки 
-   d ..ParseParam()
-   s %request.URL="/"_%request.CgiEnvs("QUERY_PAGE")
-  ;  Если етсьпараметр "typ" тогда меняем тип содержимого
-   if $l(%request.Get("typ",""))>0  d %request.InsertCgiEnv("CONTENT_TYP",%request.Get("typ","")) 
-
+   d ..ParseParam(zapros)
   ; Инициируем сесию ---
     d ..InitSession()
-  
-  
-   if $l(%request.Get("namespace",""))'=0{  
-       d $zu(5,%request.Get("namespace","")) 
-   }
-    
-   ; Выводим содержимое из каталога
-   s PathFileLocal=%request.CgiEnvs("PATH_TRANSLATED")
-   if ..GetRawHtml(PathFileLocal)=1  d ..clsConnect() q
-       
-       ; Переключаем область имен по Вэб приложению
-       d $zu(5,"%SYS") 
-       s app=$SYSTEM.CSP.GetAppName(%request.CgiEnvs("QUERY_PAGE"))
-       s app="/"_$e(app,1,$l(app)-1)
-       s app=$SYSTEM.CSP.GetAppName(%request.CgiEnvs("QUERY_PAGE"))
-       s app="/"_$e(app,1,$l(app)-1)
-       s SqlStrTmp=" select TOP 1 NameLowerCase,NameSpace,Path,NameLowerCase from Security.Applications where id=?"
-       s SQLobj=##class(%SQL.Statement).%New()
-       d SQLobj.%Prepare(SqlStrTmp)
-       s DataSet=SQLobj.%Execute(app)
-       s CountApp=0
-       s Path=""
-       while DataSet.%Next() { s CountApp=CountApp+1 s Path=DataSet.Path d $zu(5,DataSet.NameSpace) } 
-       d %request.InsertCgiEnv("NAMESPACE",$zu(5)) ; Запоминаем имя области имен
-       k SQLobj  
-       if CountApp=0{
-          USE $ZUTIL(53):(::"M") w "HTTP/1.1 400",$c(13,10)
-          w "Content-type: text/plain"_"; charset="_%response.CharSet,$c(13,10)
-          w "Connection: close"_$c(13,10,13,10)
-          d ..clsConnect()
-          q 
-       }
-       ; -------------------------------------------------------------------
- 
-   ; Имя класса
-   s ClassNameCsp=$SYSTEM.CSP.GetClassName("/"_%request.CgiEnvs("QUERY_PAGE"))
-   if ..GetClsHtml(ClassNameCsp,0,0)=1    d ..clsConnect() q 
-  
-   s ShortPage=$e(%request.CgiEnvs("QUERY_PAGE"),$l(app),$l(%request.CgiEnvs("QUERY_PAGE")))
-   s PathFileLocal=$tr(Path_ShortPage,"/","\")
-   if ..GetRawHtml(PathFileLocal)=1  d ..clsConnect() q
-  
-  
+   
+   if ..GerUrlContent(zapros)=1 q
+   
+   
    s %LastIO=$IO  u %LastIO::("^"_$zn) d ##class(%Device).ReDirectIO($$$YES)   
      ; 
      ;  Запрашиваемый ресурс не найден
@@ -1071,6 +1022,69 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
         k ^||tmp        
         d ..clsConnect()
         q
+   
+   
+   
+   q
+]]></Implementation>
+</Method>
+
+<Method name="GerUrlContent">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>zapros</FormalSpec>
+<ReturnType>%Boolean</ReturnType>
+<Implementation><![CDATA[
+
+  ;
+  ; Запоминаем расширение файла как тип содержимого
+    s typ=$p(zapros ,".", $l(zapros,"."))
+    s typ=$p(typ,"/?",1)
+    s typ=$p(typ,"/",1)
+    d %request.InsertCgiEnv("CONTENT_TYP",typ)
+   ;  Если етсьпараметр "typ" тогда меняем тип содержимого
+   if $l(%request.Get("typ",""))>0  d %request.InsertCgiEnv("CONTENT_TYP",%request.Get("typ","")) 
+  
+   if $l(%request.Get("namespace",""))'=0{  
+       d $zu(5,%request.Get("namespace","")) 
+   }
+    
+   ; Выводим содержимое из каталога
+   s PathFileLocal=%request.CgiEnvs("PATH_TRANSLATED")
+   if ..GetRawHtml(PathFileLocal)=1  d ..clsConnect() q 1
+       
+       ; Переключаем область имен по Вэб приложению
+       d $zu(5,"%SYS") 
+       s app=$SYSTEM.CSP.GetAppName(%request.CgiEnvs("QUERY_PAGE"))
+       s app="/"_$e(app,1,$l(app)-1)
+       s app=$SYSTEM.CSP.GetAppName(%request.CgiEnvs("QUERY_PAGE"))
+       s app="/"_$e(app,1,$l(app)-1)
+       s SqlStrTmp=" select TOP 1 NameLowerCase,NameSpace,Path,NameLowerCase from Security.Applications where id=?"
+       s SQLobj=##class(%SQL.Statement).%New()
+       d SQLobj.%Prepare(SqlStrTmp)
+       s DataSet=SQLobj.%Execute(app)
+       s CountApp=0
+       s Path=""
+       while DataSet.%Next() { s CountApp=CountApp+1 s Path=DataSet.Path d $zu(5,DataSet.NameSpace) } 
+       d %request.InsertCgiEnv("NAMESPACE",$zu(5)) ; Запоминаем имя области имен
+       k SQLobj  
+       if CountApp=0{
+          USE $ZUTIL(53):(::"M") w "HTTP/1.1 400",$c(13,10)
+          w "Content-type: text/plain"_"; charset="_%response.CharSet,$c(13,10)
+          w "Connection: close"_$c(13,10,13,10)
+          d ..clsConnect()
+          q 1
+       }
+       ; -------------------------------------------------------------------
+ 
+   ; Имя класса
+   s ClassNameCsp=$SYSTEM.CSP.GetClassName("/"_%request.CgiEnvs("QUERY_PAGE"))
+   if ..GetClsHtml(ClassNameCsp,0,0)=1    d ..clsConnect() q 1
+  
+   s ShortPage=$e(%request.CgiEnvs("QUERY_PAGE"),$l(app),$l(%request.CgiEnvs("QUERY_PAGE")))
+   s PathFileLocal=$tr(Path_ShortPage,"/","\")
+   if ..GetRawHtml(PathFileLocal)=1  d ..clsConnect() q 1
+  
+   q 0
 ]]></Implementation>
 </Method>
 
@@ -1118,6 +1132,7 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
    w *-2,$c(13,10)
    s isCloseChaild=0   
    k ^%WebPost($JOB)
+   TRY { d %session.%Save()   } CATCH {}
    q
 ]]></Implementation>
 </Method>
@@ -1151,14 +1166,15 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
 
 разбираем Параметры в строке URL запроса </Description>
 <ClassMethod>1</ClassMethod>
+<FormalSpec>zapros</FormalSpec>
 <Implementation><![CDATA[
    ;
    ;  разбираем Параметры в строке запроса
-   if $l(%request.GetCgiEnv("QUERY_STRING"))'=0 d
-   .     s arg=%request.GetCgiEnv("QUERY_STRING")
+   if $l(zapros)'=0 d
+   .     s arg=zapros
    .     d %request.InsertCgiEnv("QUERY_PAGE",$p(arg,"/?",1))
+   .     s %request.URL="/"_%request.CgiEnvs("QUERY_PAGE")
    .     d %request.InsertCgiEnv("PATH_TRANSLATED",$tr(%request.GetCgiEnv("LOCAL_PATH")_"/"_$p(arg,"/?",1),"/","\"))
-   .     
    .     if $l(arg,"?")>1  d
    .     .  if $l($p(arg,"?",1))=0  d
    .     .  .  s arg="/"_arg
@@ -1482,7 +1498,15 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
          s %LastIO=$IO  u %LastIO::("^"_$zn) d ##class(%Device).ReDirectIO($$$YES) 
 	   }      If $System.CLS.IsMthd(ClassName,"OnPreHTTP") {
                 ; try{  }CATCH err{  zw err           }
+                s %response.Redirect=""
                 d $zObjClassMethod(ClassName,"OnPreHTTP")    
+                if $l(%response.Redirect)>0{
+	                if $e(%response.Redirect,1,1)="/"  s %response.Redirect=$e(%response.Redirect,2,$l(%response.Redirect))
+	                d %request.InsertCgiEnv("QUERY_PAGE",$p(%response.Redirect,"/?",1))
+                    s %request.URL="/"_%request.CgiEnvs("QUERY_PAGE")
+                    d %request.InsertCgiEnv("PATH_TRANSLATED",$tr(%request.GetCgiEnv("LOCAL_PATH")_"/"_$p(%response.Redirect,"/?",1),"/","\"))
+	                q ..GerUrlContent(%response.Redirect)   
+                }
              }
              w "HTTP/1.1 200",$c(13,10)
              w "Content-type: "_%response.ContentType_"; charset="_%response.CharSet,$c(13,10)
