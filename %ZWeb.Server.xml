@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Export generator="Cache" version="25">
+<Export generator="Cache" version="25" zv="Cache for Windows (x86-32) 2017.2 (Build 651)" ts="2018-10-21 19:53:37">
 <Class name="%ZWeb.RunJob">
 <Super>%CSP.Page</Super>
+<TimeChanged>64942,71478.205935</TimeChanged>
 <TimeCreated>64891,36695.235768</TimeCreated>
 
 <Method name="OnPreHTTP">
@@ -105,10 +106,42 @@
 	   #dim %RequestSrv as %ListOfDataTypes
 	   do ##class(%ZEN.Auxiliary.jsonProvider).%ConvertJSONToObject(json,,.%RequestSrv,1)
        if %RequestSrv'="" {
+
+           //----переключаем область имен на родительскую страницу -----------
+           s ref=%request.CgiEnvs("HTTP_REFERER")
+           s ref=$e(ref,$l($p(ref,"/"))+2,$l(ref))
+           s ref=$e(ref,$l($p(ref,"/"))+2,$l(ref))
+           s ref=$e(ref,$l($p(ref,"/"))+2,$l(ref))
+           s app=$SYSTEM.CSP.GetAppName(ref)
+	       s app="/"_$e(app,1,$l(app)-1)
+	       ; &SQL(select TOP 1 NameSpace into :NameSpace from Security.Applications where id=:app)
+	       ; if (SQLCODE '= 0) {d $zu(5,NameSpace) } }
+	       s SqlStrTmp=" select TOP 1 NameSpace from Security.Applications where id=?"
+           s SQLobj=##class(%SQL.Statement).%New()
+           d SQLobj.%Prepare(SqlStrTmp)
+           s DataSet=SQLobj.%Execute(app)
+           while DataSet.%Next() {  d $zu(5,DataSet.NameSpace) } 
+           //------------------------------------------------------------------
+   
 	       s SesKey=$System.Encryption.Base64Decode(%RequestSrv.GetAt(1))
+	       ; w SesKey
 	       s ClassMethod=%RequestSrv.GetAt(2)
+	       s ClassMethod=$p(ClassMethod,"&",1)	         
+	        
+	         ; s ^%deb("app")=app
+             ; s ^%deb($JOB,"NS")=$ZU(5)
+	         ; s ^%deb($JOB,"ClassMethod")=ClassMethod
+	         ; s ^%deb($JOB,"SesKey")=SesKey
+	       
 	       s ClassMethod=$$$cspDecode(SesKey,ClassMethod)
 	       s ClassMethod=$lg(ClassMethod,1)
+	       s FromQuery=""
+	       if $l(ClassMethod,":")>1{
+	         s FromQuery=$p(ClassMethod,":",2)
+	         s ClassMethod=$p(ClassMethod,":",1)
+	       }
+	       s ^%deb($JOB,"ClassMethodEncode")=ClassMethod
+	        
 	       ; s FromRunClassMethod=$p(ClassMethod,":",2)
 	       s ClassMethod=$p(ClassMethod,":",1)
            s %method=$p(ClassMethod,".",$l(ClassMethod,"."))
@@ -579,6 +612,7 @@
   d ##class(%ZWeb.Server).Stop()
 </example>]]></Description>
 <Super>%RegisteredObject</Super>
+<TimeChanged>64942,70701.64789</TimeChanged>
 <TimeCreated>64772,22000.244656</TimeCreated>
 
 <Method name="ExportUDL">
@@ -808,7 +842,7 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
    s isWebSocketKey=""
    s WebSocketVer=-1
    s FallLoad=0
-   s FallLoadRunJob=0
+   s %FallLoadRunJob=0
    s DebInf=""
    s RefererUrl=""
    For  Q:((isCloseChaild=1)||($T=1)||(isTerminal=1) )  d
@@ -848,6 +882,7 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
    .      .   	      s FallLoad=1
    .      .        }
    .      .        if $l(zapros,"csp/broker/cspbroker.js")=2 {
+   .      .           s %FallLoadRunJob=1
    .      .           s zapros=$replace(zapros,"cspbroker.js", "%25ZWeb.RunJob.cls")
    .      .        }
    .      .   
@@ -1054,8 +1089,8 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
        
        ; Переключаем область имен по Вэб приложению
        d $zu(5,"%SYS") 
-       s app=$SYSTEM.CSP.GetAppName(%request.CgiEnvs("QUERY_PAGE"))
-       s app="/"_$e(app,1,$l(app)-1)
+       ;  if %FallLoadRunJob=1 
+       
        s app=$SYSTEM.CSP.GetAppName(%request.CgiEnvs("QUERY_PAGE"))
        s app="/"_$e(app,1,$l(app)-1)
        s SqlStrTmp=" select TOP 1 NameLowerCase,NameSpace,Path,NameLowerCase from Security.Applications where id=?"
@@ -1548,6 +1583,7 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
 	             q:ind=""
 	             if %response.ContentType["html" {
 	                w $zcvt(^||tmpLocal(ind),"o",%response.CharSet)
+	                
 	             }else{
 		            s html=$zcvt(^||tmpLocal(ind),"o",%response.CharSet)
 		            w html
