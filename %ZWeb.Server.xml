@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Export generator="Cache" version="25" zv="Cache for Windows (x86-32) 2017.2 (Build 651)" ts="2018-10-24 17:55:39">
+<Export generator="Cache" version="25" zv="Cache for Windows (x86-32) 2017.2 (Build 651)" ts="2018-10-24 17:57:38">
 <Class name="%ZWeb.RunJob">
 <Super>%CSP.Page</Super>
-<TimeChanged>64944,57178.101507</TimeChanged>
+<TimeChanged>64945,64642.923267</TimeChanged>
 <TimeCreated>64891,36695.235768</TimeCreated>
 
 <Method name="OnPreHTTP">
@@ -189,14 +189,14 @@
 	}
 	
 	d ..readJSFunctionFromCacheClass("%ZWeb.RunJob")
-	
-	if ParentClass'="",ParentClass'=##this {
- 	   d ..readJSFunctionFromCacheClass(ParentClass)
-	}
-	&js<
+   &js<
 	  var cspHttpServerMethod=SendServer;
 	  var cspCallHttpServerMethod=CallServer;
 	>
+    
+	if ParentClass'="",ParentClass'=##this {
+ 	   d ..readJSFunctionFromCacheClass(ParentClass)
+	}
     Quit $$$OK
 ]]></Implementation>
 </Method>
