@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Export generator="Cache" version="25" zv="Cache for Windows (x86-32) 2017.2 (Build 651)" ts="2018-10-21 19:53:37">
+<Export generator="Cache" version="25" zv="Cache for Windows (x86-32) 2017.2 (Build 651)" ts="2018-10-24 17:55:39">
 <Class name="%ZWeb.RunJob">
 <Super>%CSP.Page</Super>
-<TimeChanged>64942,71478.205935</TimeChanged>
+<TimeChanged>64944,57178.101507</TimeChanged>
 <TimeCreated>64891,36695.235768</TimeCreated>
 
 <Method name="OnPreHTTP">
@@ -16,15 +16,9 @@
 ]]></Implementation>
 </Method>
 
-<Method name="OnPage">
+<Method name="IncludeJSFunction">
 <ClassMethod>1</ClassMethod>
-<ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
-    #define cspEncode(%k,%d)        $translate($System.Encryption.AESBase64Encode(%d,%k),"+=/"_$char(32,13,10),"_-$")
-    #define cspDecode(%k,%d)        $System.Encryption.AESBase64Decode($translate(%d,"_-$","+=/"),%k)
-	
-	 /// Подключение класса и интерпритация его как JS библиотек
-    if %request.Get("include","")'=""{
 	   s ClassCSP=%request.Get("include","")
   	   s ClassCSP=$tr(ClassCSP," ","")
        k filtr
@@ -39,12 +33,13 @@
             s filtr(ClassParentTmp)=1
           } 
 	   }
-	   q 1   
-    }
-    
-    
-    /// Подключение класса и интерпритация его как JS библиотек
-    if %request.Get("object","")'=""{
+       q
+]]></Implementation>
+</Method>
+
+<Method name="IncludeJSObject">
+<ClassMethod>1</ClassMethod>
+<Implementation><![CDATA[
 	   s ClassCSP=%request.Get("object","")
   	   s ClassCSP=$tr(ClassCSP," ","")
        k filtrObj
@@ -82,6 +77,25 @@
 		      
 	      }  
 	   }
+]]></Implementation>
+</Method>
+
+<Method name="OnPage">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+    #define cspEncode(%k,%d)        $translate($System.Encryption.AESBase64Encode(%d,%k),"+=/"_$char(32,13,10),"_-$")
+    #define cspDecode(%k,%d)        $System.Encryption.AESBase64Decode($translate(%d,"_-$","+=/"),%k)
+	
+	 /// Подключение класса и интерпритация его как JS библиотек
+    if %request.Get("include","")'=""{
+	   d ..IncludeJSFunction()
+	   q 1   
+    }
+    
+    /// Подключение класса и интерпритация его как JS библиотек
+    if %request.Get("object","")'=""{
+	   d ..IncludeJSObject()
 	   q 1   
     } 
     
@@ -128,7 +142,8 @@
 	       s ClassMethod=%RequestSrv.GetAt(2)
 	       s ClassMethod=$p(ClassMethod,"&",1)	         
 	        
-	         ; s ^%deb("app")=app
+	         ; s ^%deb($job,"%NameSpaceDefault")=%NameSpaceDefault
+             ; s ^%deb($job,"app")=app
              ; s ^%deb($JOB,"NS")=$ZU(5)
 	         ; s ^%deb($JOB,"ClassMethod")=ClassMethod
 	         ; s ^%deb($JOB,"SesKey")=SesKey
@@ -173,8 +188,11 @@
 	   q 1	
 	}
 	
-	
 	d ..readJSFunctionFromCacheClass("%ZWeb.RunJob")
+	
+	if ParentClass'="",ParentClass'=##this {
+ 	   d ..readJSFunctionFromCacheClass(ParentClass)
+	}
 	&js<
 	  var cspHttpServerMethod=SendServer;
 	  var cspCallHttpServerMethod=CallServer;
@@ -291,6 +309,9 @@
 <Implementation><![CDATA[
 	
      s onEventFun=",onblur,onerror,onfocus,onload,onresize,onscroll,onbeforeunload,onhashchange,onlanguagechange,onmessage,onoffline,ononline,onpagehide,onpageshow,onpopstate,onrejectionhandled,onstorage,onunhandledrejection,onunload,onabort,oncancel,oncanplay,oncanplaythrough,onchange,onclick,onclose,oncontextmenu,oncuechange,ondblclick,ondrag,ondragend,ondragenter,ondragleave,ondragover,ondragstart,ondrop,ondurationchange,onemptied,onended,oninput,oninvalid,onkeydown,onkeypress,onkeyup,onloadeddata,onloadedmetadata,onloadstart,onmousedown,onmouseenter,onmouseleave,onmousemove,onmouseout,onmouseover,onmouseup,onmousewheel,onpause,onplay,onplaying,onprogress,onratechange,onreset,onseeked,onseeking,onselect,onshow,onstalled,onsubmit,onsuspend,ontimeupdate,ontoggle,onvolumechange,onwaiting,onauxclick,ongotpointercapture,onlostpointercapture,onpointercancel,onpointerdown,onpointerenter,onpointerleave,onpointermove,onpointerout,onpointerover,onpointerup,onbeforecopy,onbeforecut,onbeforepaste,oncopy,oncut,onpaste,onsearch,onselectstart,onwheel,onwebkitfullscreenchange,onwebkitfullscreenerror"
+     if $d(%NameSpaceDefault){
+	     &js</*  %NameSpaceDefault: #(%NameSpaceDefault)#   */>
+     }
      if $zObjClassMethod("%CompiledClass","%ExistsId",ParentClassName)'=1 {
 	  &js</*
          Класс #(ParentClassName)# не найден  	  
@@ -606,13 +627,13 @@
   d ##class(%ZWeb.Server).Stop(80)
   d ##class(%ZWeb.Server).Start(8228  , "C:\AppServ\www","DUBROVINO","index.htm" )
   d ##class(%ZWeb.Server).Start(6010  , "C:\AppServ\www","index.html" )
-  d ##class(%ZWeb.Server).Start(6010  , "C:\AppCacheSrv\www","user","index.html" )
-  d ##class(%ZWeb.Server).Start(6010  , "D:\sirena\env","sirena","sirena/index.csp" )
-  d ##class(%ZWeb.Server).Start(6010  , "E:\!5autoexport\myasnikovia\www","sirena","index.html" )
+  d ##class(%ZWeb.Server).Start(6010  , "C:\AppCacheSrv\www","index.html","user" )
+  d ##class(%ZWeb.Server).Start(6010  , "D:\sirena\env","sirena/index.csp","sirena" )
+  d ##class(%ZWeb.Server).Start(6010  , "E:\!5autoexport\myasnikovia\www","index.html","sirena" )
   d ##class(%ZWeb.Server).Stop()
 </example>]]></Description>
 <Super>%RegisteredObject</Super>
-<TimeChanged>64942,70701.64789</TimeChanged>
+<TimeChanged>64943,27625.302244</TimeChanged>
 <TimeCreated>64772,22000.244656</TimeCreated>
 
 <Method name="ExportUDL">
@@ -694,9 +715,9 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
 
 Запустить работу сервера</Description>
 <ClassMethod>1</ClassMethod>
-<FormalSpec>port:%Integer=6010,pathHost:%String="C:\AppServ\www",startPage:%String="index.html"</FormalSpec>
+<FormalSpec>port:%Integer=6010,pathHost:%String="C:\AppServ\www",startPage:%String="index.html",NameSpace=$ZU(5)</FormalSpec>
 <Implementation><![CDATA[
-     s NameSpaceDefault="%SYS"
+     s NameSpaceDefault=NameSpace
      s methodDefault = "OnPage"
      k ^%ZWebServerKill(port)
      ; 63991
@@ -805,10 +826,10 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
 
    s TimeOut=$lg(^%ZWebServerCfg(port),2)
    s pathHost=$lg(^%ZWebServerCfg(port),3)
-   s NameSpaceDefault=$lg(^%ZWebServerCfg(port),4)
+   s %NameSpaceDefault=$lg(^%ZWebServerCfg(port),4)
    s startPage=$lg(^%ZWebServerCfg(port),5)
    s methodDefault=$lg(^%ZWebServerCfg(port),6)
-   zn NameSpaceDefault ; переключаем область имен
+   zn "%SYS" ; переключаем область имен
    s numPac=0
    s isCloseChaild=0 
    s SocketTempIndex=0
@@ -849,7 +870,7 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
    .  If $T=1 s isCloseChaild=1 
    .   // Если терминальный запрос, тогда уничтожаем этот процесс
    .   // if isTerminal=1 d $zu(4,$job)
-   . if isEndTitle=0 {
+   .  if isEndTitle=0 {
    .     S dev=$ZUTIL(53)  
    .     USE dev:(::"M")  
    .     READ inData:1
@@ -1076,16 +1097,20 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
     s typ=$p(typ,"/?",1)
     s typ=$p(typ,"/",1)
     d %request.InsertCgiEnv("CONTENT_TYP",typ)
-   ;  Если етсьпараметр "typ" тогда меняем тип содержимого
-   if $l(%request.Get("typ",""))>0  d %request.InsertCgiEnv("CONTENT_TYP",%request.Get("typ","")) 
+    ;  Если етсьпараметр "typ" тогда меняем тип содержимого
+       if $l(%request.Get("typ",""))>0  d %request.InsertCgiEnv("CONTENT_TYP",%request.Get("typ","")) 
   
-   if $l(%request.Get("namespace",""))'=0{  
-       d $zu(5,%request.Get("namespace","")) 
-   }
-    
-   ; Выводим содержимое из каталога
-   s PathFileLocal=%request.CgiEnvs("PATH_TRANSLATED")
-   if ..GetRawHtml(PathFileLocal)=1  d ..clsConnect() q 1
+     ; Выводим содержимое из каталога
+       s PathFileLocal=%request.CgiEnvs("PATH_TRANSLATED")
+       if $d(%NameSpaceDefault){ 
+         zn %NameSpaceDefault
+       }else{
+	     zn "%SYS"     
+       }
+       if ..GetRawHtml(PathFileLocal)=1  d ..clsConnect() q 1
+       zn "%SYS"     ; ???
+  
+       if $l(%request.Get("namespace",""))'=0     d $zu(5,%request.Get("namespace","")) 
        
        ; Переключаем область имен по Вэб приложению
        d $zu(5,"%SYS") 
