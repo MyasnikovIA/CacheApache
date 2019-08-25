@@ -1307,14 +1307,8 @@ wtab(s)  s ^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF")=$get(^mtempZW
 <Class name="%ZWeb.Server">
 <Description><![CDATA[
 <example>
-  d ##class(%ZWeb.Server).Start(80  , "D:\www","csp/user/SMWrap.main.cls" )
-  d ##class(%ZWeb.Server).Start(80  , "d:\sirena\env","index.html" )
+  d ##class(%ZWeb.Server).Start(80,"D:\!!ProjectWor\Sirius\InstallSirena(26-04-2019)\env","index.html")
   d ##class(%ZWeb.Server).Stop(80)
-  d ##class(%ZWeb.Server).Start(8228  , "C:\AppServ\www","DUBROVINO","index.htm" )
-  d ##class(%ZWeb.Server).Start(6010  , "C:\AppServ\www","index.html" )
-  d ##class(%ZWeb.Server).Start(6010  , "C:\AppCacheSrv\www","user","index.html" )
-  d ##class(%ZWeb.Server).Start(6010  , "D:\sirena\env","sirena","sirena/index.csp" )
-  d ##class(%ZWeb.Server).Start(6010  , "E:\!5autoexport\myasnikovia\www","sirena","index.html" )
   d ##class(%ZWeb.Server).Stop()
 </example>]]></Description>
 <Super>%RegisteredObject</Super>
@@ -1399,15 +1393,14 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
 
 Запустить работу сервера</Description>
 <ClassMethod>1</ClassMethod>
-<FormalSpec>port:%Integer=6010,startPage:%String="index.html"</FormalSpec>
+<FormalSpec>port:%Integer=6010,StaticPath="",startPage:%String="index.html"</FormalSpec>
 <Implementation><![CDATA[
+	 s ^%SYS("WebServer","Port")=port
      s methodDefault = "OnPage"
      k ^%ZWebServerKill(port)
-     ; 63991
      w !,"Автор: Мясников Иван Александрович"
      w !,"Email: Miacom@mail.ru"
      w !
-     ; if $p($h,",",1)>(63991+60+60+60) w !,"Льготный период использования закончился. Обратитесь к автору за продлением.",!
      s port = $G(port)  
      s TimeOut=3200
      s startPage=$g(startPage)
@@ -1415,7 +1408,7 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
           if $d(^%ZWebServerCfg(port)) d
           .    d ..Stop(port)
           .    k ^%ZWebServerCfg(port)
-          s ^%ZWebServerCfg(port)=$lb(port,TimeOut,"","", startPage,methodDefault)
+          s ^%ZWebServerCfg(port)=$lb(port,TimeOut,StaticPath,"", startPage,methodDefault)
      s cmd="cmd /c  start ""explorer.exe""  ""http://127.0.0.1:"_port_"/"_startPage_""""
      ; d $zf(-1,cmd,1)
      job ..startJob(port)
@@ -1506,6 +1499,7 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
 <Implementation><![CDATA[
 
    s TimeOut=$lg(^%ZWebServerCfg(port),2)
+   s %CacheStaticPath=$lg(^%ZWebServerCfg(port),3)
    s startPage=$lg(^%ZWebServerCfg(port),5)
    s methodDefault=$lg(^%ZWebServerCfg(port),6)
    zn "%SYS" ; переключаем область имен
@@ -1808,6 +1802,12 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
        if ..GetClsHtml(ClassNameCsp,0,0)=1    d ..clsConnect() q 1 
        s PathFileLocal=$SYSTEM.CSP.GetFileName("/"_%request.CgiEnvs("QUERY_PAGE"))
        if ..GetRawHtml(PathFileLocal)=1  d ..clsConnect() q 1
+       if $l(%CacheStaticPath)>0{ 
+          s PathFileLocal=%CacheStaticPath_"/"_%request.CgiEnvs("QUERY_PAGE")
+          s PathFileLocal=$replace(PathFileLocal,"/","\")
+          if ..GetRawHtml(PathFileLocal)=1  d ..clsConnect() q 1
+       }
+       
        
        ; s ShortPage=$e(%request.CgiEnvs("QUERY_PAGE"),$l(app),$l(%request.CgiEnvs("QUERY_PAGE")))
        ; // w $SYSTEM.CSP.GetFileName("/csp/user/Untitled1.CSP")
@@ -4547,6 +4547,4 @@ If the session has no sticky-context, the Target User will be UnknownUser</li>
 </Data>
 </Storage>
 </Class>
-
-
 </Export>
