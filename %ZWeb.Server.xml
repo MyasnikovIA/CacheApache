@@ -1308,6 +1308,7 @@ wtab(s)  s ^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF")=$get(^mtempZW
 <Description><![CDATA[
 <example>
   d ##class(%ZWeb.Server).Start(80,"D:\!!ProjectWor\Sirius\InstallSirena(26-04-2019)\env","index.html")
+  d ##class(%ZWeb.Server).Start(80,"D:\AppServ\www","index.html")
   d ##class(%ZWeb.Server).Stop(80)
   d ##class(%ZWeb.Server).Stop()
 </example>]]></Description>
@@ -4547,4 +4548,6 @@ If the session has no sticky-context, the Target User will be UnknownUser</li>
 </Data>
 </Storage>
 </Class>
+
+
 </Export>
