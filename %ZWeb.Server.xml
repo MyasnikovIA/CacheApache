@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Export generator="Cache" version="25" zv="Cache for Windows (x86-32) 2017.2 (Build 651)" ts="2018-10-24 17:57:38">
+<Export generator="Cache" version="25">
 <Class name="%ZWeb.RunJob">
 <Super>%CSP.Page</Super>
-<TimeChanged>64945,64642.923267</TimeChanged>
 <TimeCreated>64891,36695.235768</TimeCreated>
 
 <Method name="OnPreHTTP">
@@ -16,9 +15,15 @@
 ]]></Implementation>
 </Method>
 
-<Method name="IncludeJSFunction">
+<Method name="OnPage">
 <ClassMethod>1</ClassMethod>
+<ReturnType>%Status</ReturnType>
 <Implementation><![CDATA[
+    #define cspEncode(%k,%d)        $translate($System.Encryption.AESBase64Encode(%d,%k),"+=/"_$char(32,13,10),"_-$")
+    #define cspDecode(%k,%d)        $System.Encryption.AESBase64Decode($translate(%d,"_-$","+=/"),%k)
+	
+	 /// Подключение класса и интерпритация его как JS библиотек
+    if %request.Get("include","")'=""{
 	   s ClassCSP=%request.Get("include","")
   	   s ClassCSP=$tr(ClassCSP," ","")
        k filtr
@@ -33,13 +38,12 @@
             s filtr(ClassParentTmp)=1
           } 
 	   }
-       q
-]]></Implementation>
-</Method>
-
-<Method name="IncludeJSObject">
-<ClassMethod>1</ClassMethod>
-<Implementation><![CDATA[
+	   q 1   
+    }
+    
+    
+    /// Подключение класса и интерпритация его как JS библиотек
+    if %request.Get("object","")'=""{
 	   s ClassCSP=%request.Get("object","")
   	   s ClassCSP=$tr(ClassCSP," ","")
        k filtrObj
@@ -77,25 +81,6 @@
 		      
 	      }  
 	   }
-]]></Implementation>
-</Method>
-
-<Method name="OnPage">
-<ClassMethod>1</ClassMethod>
-<ReturnType>%Status</ReturnType>
-<Implementation><![CDATA[
-    #define cspEncode(%k,%d)        $translate($System.Encryption.AESBase64Encode(%d,%k),"+=/"_$char(32,13,10),"_-$")
-    #define cspDecode(%k,%d)        $System.Encryption.AESBase64Decode($translate(%d,"_-$","+=/"),%k)
-	
-	 /// Подключение класса и интерпритация его как JS библиотек
-    if %request.Get("include","")'=""{
-	   d ..IncludeJSFunction()
-	   q 1   
-    }
-    
-    /// Подключение класса и интерпритация его как JS библиотек
-    if %request.Get("object","")'=""{
-	   d ..IncludeJSObject()
 	   q 1   
     } 
     
@@ -136,18 +121,10 @@
            s DataSet=SQLobj.%Execute(app)
            while DataSet.%Next() {  d $zu(5,DataSet.NameSpace) } 
            //------------------------------------------------------------------
-   
 	       s SesKey=$System.Encryption.Base64Decode(%RequestSrv.GetAt(1))
 	       ; w SesKey
 	       s ClassMethod=%RequestSrv.GetAt(2)
 	       s ClassMethod=$p(ClassMethod,"&",1)	         
-	        
-	         ; s ^%deb($job,"%NameSpaceDefault")=%NameSpaceDefault
-             ; s ^%deb($job,"app")=app
-             ; s ^%deb($JOB,"NS")=$ZU(5)
-	         ; s ^%deb($JOB,"ClassMethod")=ClassMethod
-	         ; s ^%deb($JOB,"SesKey")=SesKey
-	       
 	       s ClassMethod=$$$cspDecode(SesKey,ClassMethod)
 	       s ClassMethod=$lg(ClassMethod,1)
 	       s FromQuery=""
@@ -155,8 +132,6 @@
 	         s FromQuery=$p(ClassMethod,":",2)
 	         s ClassMethod=$p(ClassMethod,":",1)
 	       }
-	       s ^%deb($JOB,"ClassMethodEncode")=ClassMethod
-	        
 	       ; s FromRunClassMethod=$p(ClassMethod,":",2)
 	       s ClassMethod=$p(ClassMethod,":",1)
            s %method=$p(ClassMethod,".",$l(ClassMethod,"."))
@@ -188,15 +163,12 @@
 	   q 1	
 	}
 	
+	
 	d ..readJSFunctionFromCacheClass("%ZWeb.RunJob")
-   &js<
+	&js<
 	  var cspHttpServerMethod=SendServer;
 	  var cspCallHttpServerMethod=CallServer;
 	>
-    
-	if ParentClass'="",ParentClass'=##this {
- 	   d ..readJSFunctionFromCacheClass(ParentClass)
-	}
     Quit $$$OK
 ]]></Implementation>
 </Method>
@@ -307,7 +279,6 @@
 <FormalSpec>ParentClassName="",MethodName="",DrawDescript=1</FormalSpec>
 <ReturnType>%String</ReturnType>
 <Implementation><![CDATA[
-	
      s onEventFun=",onblur,onerror,onfocus,onload,onresize,onscroll,onbeforeunload,onhashchange,onlanguagechange,onmessage,onoffline,ononline,onpagehide,onpageshow,onpopstate,onrejectionhandled,onstorage,onunhandledrejection,onunload,onabort,oncancel,oncanplay,oncanplaythrough,onchange,onclick,onclose,oncontextmenu,oncuechange,ondblclick,ondrag,ondragend,ondragenter,ondragleave,ondragover,ondragstart,ondrop,ondurationchange,onemptied,onended,oninput,oninvalid,onkeydown,onkeypress,onkeyup,onloadeddata,onloadedmetadata,onloadstart,onmousedown,onmouseenter,onmouseleave,onmousemove,onmouseout,onmouseover,onmouseup,onmousewheel,onpause,onplay,onplaying,onprogress,onratechange,onreset,onseeked,onseeking,onselect,onshow,onstalled,onsubmit,onsuspend,ontimeupdate,ontoggle,onvolumechange,onwaiting,onauxclick,ongotpointercapture,onlostpointercapture,onpointercancel,onpointerdown,onpointerenter,onpointerleave,onpointermove,onpointerout,onpointerover,onpointerup,onbeforecopy,onbeforecut,onbeforepaste,oncopy,oncut,onpaste,onsearch,onselectstart,onwheel,onwebkitfullscreenchange,onwebkitfullscreenerror"
      if $d(%NameSpaceDefault){
 	     &js</*  %NameSpaceDefault: #(%NameSpaceDefault)#   */>
@@ -619,6 +590,720 @@
 </Class>
 
 
+<Class name="%ZWeb.RunJobOne">
+<Description><![CDATA[
+ <script type="text/javascript" src="%25ZWeb.RunJobOne.cls"></script>]]></Description>
+<Super>%CSP.Page</Super>
+<TimeCreated>65250,57918.49253</TimeCreated>
+
+<Parameter name="CodePage">
+<Description><![CDATA[
+<br>   s %response.CharSet="CP1251" 
+<br>   "CP1251" или "UTF-8"
+Parameter CodePage = "UTF-8";]]></Description>
+<Default>UTF-8</Default>
+</Parameter>
+
+<Parameter name="GlobalMessage">
+<Default>^mtempZFastReport.js</Default>
+</Parameter>
+
+<Parameter name="intervalQueryStatus">
+<Default>1500</Default>
+</Parameter>
+
+<Method name="OnPreHTTP">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Library.Boolean</ReturnType>
+<Implementation><![CDATA[
+     if ##this'="%ZWeb.RunJobOne"{ 
+        Do %response.SetHeader("Content-Type","text/html")   
+        q 1 
+      }
+      s isUnicode=$SYSTEM.Version.IsUnicode()
+      s %response.CharSet="UTF-8"  
+	  ; s %response.CharSet="CP1251"  
+     /*
+     if $l(%request.GetCgiEnv("Cache port",""))=0{ // Запуск из %ZWeb.Server
+        
+         if $p($replace($$GetVersion^%apiOBJ(),"Cache Objects Version ",""),".",1)="2013"{;
+	 	   s %response.CharSet="UTF-8"  
+	     }else{
+	       s %response.CharSet="CP1251"  
+         }
+        
+     }
+     */
+     if %request.Get("cspIntRunMethod",0)=1 {
+	     if %response.ContentType="text/html" {
+            Do %response.SetHeader("Content-Type","text/plain")   
+	     }
+         q 1   
+     }
+     Do %response.SetHeader("Content-Type","application/javascript")   
+     q 1
+]]></Implementation>
+</Method>
+
+<Method name="OnPage">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+    /// Подключение класса и интерпритация его как JS библиотек
+    if %request.Get("include","")'=""{
+	    d ..IncludeJsFun()
+	    q 1   
+    }
+	
+	if %request.Get("GetStatusJob","")'=""{	
+	   s LastJobId=%request.Get("GetStatusJob","")
+	   if '$DATA(^$JOB(LastJobId)) {
+          w "Process Is Close" 
+	   }else {
+          w "Process Is Worc"    
+	   }
+	  q 1
+	}
+	
+	if %request.Get("GetBufferJob","")'=""{	
+	  s LastJobId=%request.Get("GetBufferJob","")
+	  if $d(^mtempZWebServerBufferRunJobOneDrawConsole(LastJobId,"BUFF")){
+	     s ind=""
+	     for {
+	 	    s ind=$o(^mtempZWebServerBufferRunJobOneDrawConsole(LastJobId,"BUFF",ind)) 
+ 		    q:ind=""
+	        s line=^mtempZWebServerBufferRunJobOneDrawConsole(LastJobId,"BUFF",ind)
+	        ; s line=$zcvt(line,"I","UTF8")
+	        ; s line=$zcvt(line,"o","CP1251")
+	        w line
+	        k ^mtempZWebServerBufferRunJobOneDrawConsole(LastJobId,"BUFF",ind) 
+         } 
+	  }
+      q 1
+	}
+	
+	if %request.Get("GetResultJob","")'=""{	
+	  s LastJobId=%request.Get("GetResultJob","")
+	  if $d(^mtempZWebServerBufferRunJobOneDrawConsole(LastJobId,"RESULT")){
+ 		  s line=^mtempZWebServerBufferRunJobOneDrawConsole(LastJobId,"RESULT")
+		  ; s line=$zcvt(line,"I","UTF8")
+		  ; s line=$zcvt(line,"o","CP1251")
+		  w line
+		  k ^mtempZWebServerBufferRunJobOneDrawConsole(LastJobId,"RESULT")
+	      k ^mtempZWebServerBufferRunJobOneDrawConsole(LastJobId)
+	  }
+      q 1
+	}
+	
+	
+	
+    /// Вычитываем тело POST запроса
+	s json=""
+	if $isobject(%request.Content){
+	   for {
+		  q:%request.Content.AtEnd
+		  s line=%request.Content.Read(32000)	     
+	      s line=$zcvt(line,"I","UTF8")
+		  ; s line=$zcvt(line,"o","CP1251")
+	      s json=json_line	     
+	   }	
+	}
+	s ParentClass=""
+    s:$d(%request.CgiEnvs("HTTP_REFERER")) ParentClass= $SYSTEM.CSP.GetClassName(%request.CgiEnvs("HTTP_REFERER"))
+    s:ParentClass="" ParentClass=%request.Get("ParentClass","")
+	s:ParentClass="" ParentClass=##THIS
+	do ##class(%ZEN.Auxiliary.jsonProvider).%ConvertJSONToObject(json,,.%override,1)
+	
+	if %override'="" {
+   	    s TestWebMethod=0
+	    s ^||WEVENT=%override.GetAt(1)
+	    ; k ^%deb
+	    ; s ^%deb=^||WEVENT
+        if $l(^||WEVENT,".")'=1  { 
+           S TestWebMethod=1
+        }else{
+            s ^||WEVENT=$lg($$$cspDecode(%session.Key,^||WEVENT),1) 
+            s ^||WEVENT=$p(^||WEVENT,":",1) ; ????
+        }
+    	   s objTmp=%override.GetAt(2)
+    	   if $isObject(objTmp){
+               k %override.Data(2)	    	   
+	    	   s indInData=1
+	    	   s subnd="" 
+	    	   for {
+		    	   s subnd=$o(objTmp.%data(subnd))
+		    	   q:subnd=""
+		    	   ; s ^%deb1("subnd:"_subnd)=subnd
+		    	   s indInData=indInData+1
+		    	   s %override.Data(indInData)=objTmp.%data(subnd)
+		    	   k objTmp.%data(subnd)
+	    	   }
+    	   }
+        s %method=$p(^||WEVENT,".",$l(^||WEVENT,"."))
+        s %class=$e(^||WEVENT,1,$l(^||WEVENT)-$l(%method)-1)
+        IF TestWebMethod=1 {
+           q:'$d(^oddDEF(%class,"m",%method,51)) 1
+           q:^oddDEF(%class,"m",%method,51)'=1 1
+        }
+        if %class="."{ s %class=ParentClass }
+	    if %request.Get("RunJob")=""{
+           d ..ExecRunMethod(%override)
+	    }else{
+		   s gl=..#GlobalMessage_"("_$job_")"
+		   s @gl@("%class")=%class
+		   s @gl@("%method")=%method
+		   for ind=2:1:%override.Size {
+             s @gl@(ind)=%override.GetAt(ind)
+		   }
+		   job ..ExecRunJobMethod(gl)
+		   w $zchild
+		   q 1
+	    }
+        q 1
+    }
+	
+	
+	 if ##this'="%ZWeb.RunJobOne"{	 
+	     &html<
+	       <script language="JavaScript" type="text/javascript" src="%25ZWeb.RunJobOne.cls"></script> 
+           <script language="JavaScript" type="text/javascript" src="%25ZWeb.RunJobOne.cls?include=#(##this)#"></script> 
+         >
+         ; Поиск Xdata с формой DFM 
+         s ClassName=##This,XdataName="Form"
+         s GL="^oddDEF("""_ClassName_""",""x"","""_XdataName_""",21)"  
+         if $d(@GL){  
+            w ##class(%ZWeb.RunJobOne).ParseDFM(ClassName_":"_XdataName) 
+         }
+	     d ..main()
+	     q 1
+	 }
+	
+     s ParentClassName1=##this
+     // zw ^oddDEF(ParentClassName1)
+     s MethodName=""
+     for {
+	     s MethodName=$o(^oddDEF(ParentClassName1,"m",MethodName))
+         q:MethodName=""
+         continue:MethodName="init"
+         
+         if $d(^oddDEF(ParentClassName1,"m",MethodName,70)) {
+             if $d(^oddDEF(ParentClassName1,"m",MethodName,4)){
+	           w !,"/*",!
+	           w ^oddDEF(ParentClassName1,"m",MethodName,4)
+	           w "*/"
+             }
+	         w !,"  "_MethodName_" = function(" 
+	         if $d(^oddDEF(ParentClassName1,"m",MethodName,27)){
+		         w ^oddDEF(ParentClassName1,"m",MethodName,27)
+	         }
+	         w "){"
+	         
+             s ind=""
+             for {
+	            s ind=$o(^oddDEF(ParentClassName1,"m",MethodName,30,ind) )
+                q:ind=""
+                d ..ExecFrag(^oddDEF(ParentClassName1,"m",MethodName,30,ind),"/*(",")*/")
+	            w $c(13,10)
+                 // w ^oddDEF(ParentClassName1,"m",MethodName,30,ind)_$c(13,10)
+             }
+             w "}"
+         }
+     }
+      
+     s MethodName="init"
+     s ind=""
+     for {
+	    s ind=$o(^oddDEF(ParentClassName1,"m",MethodName,30,ind) )
+        q:ind=""
+        w ^oddDEF(ParentClassName1,"m",MethodName,30,ind)_$c(13,10)
+     }
+      &js<   
+           var cspHttpServerMethod=SendServer;   
+       >
+       s ClassCSP=ParentClass
+       k filtr
+	   for ind=1:1:$l(ClassCSP,","){
+	      d $system.OBJ.GetDependencies($p(ClassCSP,",",ind),.included)
+          s ClassParentTmp=""
+          for {
+            s ClassParentTmp=$o(included(ClassParentTmp))
+            q:ClassParentTmp=""
+            continue:$d(filtr(ClassParentTmp))
+            d ..readJSFunctionFromCacheClass(ClassParentTmp)
+            s filtr(ClassParentTmp)=1
+          } 
+	   }
+     Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="main">
+<ClassMethod>1</ClassMethod>
+</Method>
+
+<Method name="GetType">
+<Description>
+w ##class(%ZWeb.RunJobOne).GetType("Address.ESettle","ARegion")</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>ClassName="",propertyName=""</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	 if $d(^oddDEF(ClassName,"a",propertyName,5)){
+		 s typ=^oddDEF(ClassName,"a",propertyName,5)
+		 if $l(typ,".")=1 {
+			 if $l(typ,"%")=2 {
+			    s typ=$replace(typ,"%","%Library.")	 
+			 }else{
+			   s typ="User."_typ	 
+			 }
+		 }
+		 q typ
+	 }else{
+	    if $d(^oddDEF(ClassName,60)){
+	       w ..GetType(^oddDEF(ClassName,60),propertyName)
+	    }else{
+		 q ""   
+	    }
+	 }
+     q ""
+]]></Implementation>
+</Method>
+
+<Method name="init">
+<Description>
+Функция инициализации</Description>
+<Language>javascript</Language>
+<ClientMethod>1</ClientMethod>
+<Implementation><![CDATA[
+ 
+ // ""
+]]></Implementation>
+</Method>
+
+<Method name="SendServer">
+<FormalSpec>MethodName</FormalSpec>
+<Language>javascript</Language>
+<ClientMethod>1</ClientMethod>
+<Implementation><![CDATA[
+    var FunCallBack=null;
+    var FunProgress=null;
+    var arr=new Array();
+   //  console.log('*----'+SendServer.arguments[0]);
+       for(var ind in SendServer.arguments){
+	     if (SendServer.arguments[ind]==undefined){continue;}
+	     if ((FunCallBack==null)&&(typeof SendServer.arguments[ind] === 'function')){
+	        FunCallBack=SendServer.arguments[ind];
+	        continue;
+	     }  
+	     if ((FunProgress==null)&&(typeof SendServer.arguments[ind] === 'function')){
+	          FunProgress=SendServer.arguments[ind];
+	          continue;
+	     }  
+	     arr.push(SendServer.arguments[ind]); 
+	   }   
+    
+    
+   // console.log( arr );
+    
+   if (FunCallBack==null){
+      var requestSendServer = new XMLHttpRequest();
+      requestSendServer.open('POST', '/*(   w $zcvt("%ZWeb.RunJobOne","O","URL")_".cls"  )*/', false);
+      requestSendServer.send(JSON.stringify(arr));  
+      requestSendServer.ontimeout = function (e) {
+          alert('Время ожидания ответа вышло!!!!');
+      }
+      if (requestSendServer.status !== 200) {
+          return {"error":requestSendServer.status}
+      }
+      return requestSendServer.responseText;
+   }
+      if (FunProgress==null){ FunProgress=function(){} };
+      var requestSendServer = new XMLHttpRequest();
+      requestSendServer.open('POST', '/*(   w $zcvt("%ZWeb.RunJobOne","O","URL")_".cls/?RunJob=1"  )*/', false);
+      requestSendServer.send(JSON.stringify(arr));  
+      requestSendServer.ontimeout = function (e) {
+          alert('Время ожидания ответа вышло!!!!');
+      }
+      if (requestSendServer.status !== 200) {
+          return {"error":requestSendServer.status}
+      }
+      var ProcessJob=requestSendServer.responseText;
+      // console.log(ProcessJob);
+      var isBreck=false;
+      var FastReportTimerId = setTimeout(function tick() {
+           var requestSendServerStatus = new XMLHttpRequest();
+           requestSendServerStatus.open('GET','/*(   w $zcvt("%ZWeb.RunJobOne","O","URL")_".cls/?GetStatusJob="  )*/'+ProcessJob, false);
+           requestSendServerStatus.ontimeout = function (e) { 
+               isBreck=true; alert('Error:TimeOut'); 
+           }
+           requestSendServerStatus.send();  
+           if (requestSendServerStatus.status !== 200) {   isBreck=true; alert('Error');  }
+           // console.log(requestSendServerStatus.responseText);
+           if (typeof FunProgress === 'function'){
+	           var requestSendServerStatusSub = new XMLHttpRequest();
+               requestSendServerStatusSub.open('GET','/*(   w $zcvt("%ZWeb.RunJobOne","O","URL")_".cls/?GetBufferJob="  )*/'+ProcessJob, false);
+               requestSendServerStatusSub.ontimeout = function (e) {  alert('Error:TimeOut'); }
+               requestSendServerStatusSub.send();  
+               FunProgress(requestSendServerStatusSub.responseText); 
+               // console.log(requestSendServerStatusSub.responseText);
+           }
+           if (requestSendServerStatus.responseText=="Process Is Close"){  
+                if (typeof FunCallBack === 'function'){ 
+                   var requestSendServerStatusSub = new XMLHttpRequest();
+                   requestSendServerStatusSub.open('GET','/*(   w $zcvt("%ZWeb.RunJobOne","O","URL")_".cls/?GetResultJob="  )*/'+ProcessJob, false);
+                   requestSendServerStatusSub.ontimeout = function (e) {  alert('Error:TimeOut'); }
+                   requestSendServerStatusSub.send();  
+                   FunCallBack(requestSendServerStatusSub.responseText); 
+                }
+                clearInterval(FastReportTimerId);  
+                return; 
+           } 
+           // console.log(requestSendServerStatus.responseText);
+           FastReportTimerId = setTimeout(tick, /*(  if $l(##class(%ZWeb.RunJobOne).#intervalQueryStatus)>0 { w ##class(%ZWeb.RunJobOne).#intervalQueryStatus}else{ w 1000 } )*/+0 );
+       }, /*(  if $l(##class(%ZWeb.RunJobOne).#intervalQueryStatus)>0 { w ##class(%ZWeb.RunJobOne).#intervalQueryStatus}else{ w 1000 } )*/+0 );
+]]></Implementation>
+</Method>
+
+<Method name="ExecRunJobMethod">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>gl=""</FormalSpec>
+<Implementation><![CDATA[
+	 s %class=@gl@("%class")
+	 k @gl@("%class")
+	 s %method=@gl@("%method")
+	 k @gl@("%method")
+     s numArg=0,ind=""
+     for {
+	    s ind=$o(@gl@(ind))
+	    q:ind=""
+ 	    s numArg=numArg+1
+        // set args(numArg) = $zcvt(override.GetAt(j),"i","UTF8")
+        set args(numArg) = @gl@(ind)
+        k @gl@(ind)
+     }
+	 s args=numArg
+     d ..DrawBegin($job)	 
+	 if '$d(^oddDEF(%class,"m",%method,70)) {
+	    if $System.CLS.IsMthd(%class,%method)=1,'$d(^oddDEF(%class,"m",%method)){
+		   s ^mtempZWebServerBufferRunJobOneDrawConsole($job,"RESULT")= $classmethod(%class, %method, args...)
+		   q
+	    }
+	    if '$d(^oddDEF(%class,"m",%method,42)) {
+	       do $classmethod(%class, %method, args...)
+        } Else {
+           s ^mtempZWebServerBufferRunJobOneDrawConsole($job,"RESULT")= $classmethod(%class, %method, args...)
+        }
+     }else{
+        if $d(^oddDEF(%class,"m",%method,30)){
+          for ind=1:1:^oddDEF(%class,"m",%method,30){
+             w:ind'=1 $c(13,10)
+             d ..ExecFrag(^oddDEF(%class,"m",%method,30,ind),"/*(",")*/")
+          }
+        }
+     }
+     d ..DrawEnd($job)
+]]></Implementation>
+</Method>
+
+<Method name="ExecRunMethod">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>override:%Library.ListOfDataTypes</FormalSpec>
+<Implementation><![CDATA[
+    s numArg=0
+    s ind=""
+    for {
+	   s ind=$o(override.Data(ind))   
+	   q:ind=""
+	   continue:ind=1
+	   s numArg=numArg+1
+       set args(numArg) =$zcvt( override.Data(ind),"i","UTF8")
+       ; s ^%deb(numArg)=$zcvt(override.Data(ind),"i","UTF8")
+    }
+    set args=numArg
+     
+   ;  d ..DrawBegin()
+   ;  zw args
+   ;  d ..DrawEnd()     
+   ;  m ^%deb("BUFF")=^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF")
+     
+     s len="",IsWrite=0
+     if '$d(^oddDEF(%class,"m",%method,70)) {
+	    if $System.CLS.IsMthd(%class,%method)=1,'$d(^oddDEF(%class,"m",%method)){
+	      w $classmethod(%class, %method, args...)
+          q
+	    }
+	    if '$d(^oddDEF(%class,"m",%method,42)) {
+	       do $classmethod(%class, %method, args...)
+        } Else {
+           w $classmethod(%class, %method, args...)
+        }
+     }else{
+        if $d(^oddDEF(%class,"m",%method,30)){
+          for ind=1:1:^oddDEF(%class,"m",%method,30){
+             w:ind'=1 $c(13,10)
+              d ..ExecFrag(^oddDEF(%class,"m",%method,30,ind),"/*(",")*/")
+          }
+        }
+     }
+     q
+]]></Implementation>
+</Method>
+
+<Method name="ExecFrag">
+<Description>
+Метод разбики исходного текста на Cache` код и HTML текст</Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>SrcCode="",Beg="",End=""</FormalSpec>
+<Implementation><![CDATA[    q:SrcCode=""   q:Beg=""    q:End=""    for ExecFragInd=1:1:$l(SrcCode,End){  s tmp=$p(SrcCode,End,ExecFragInd)   s Html=$p(tmp,Beg,1)     s Code=$p(tmp,Beg,2)   w Html   TRY {     x Code    } CATCH ErrorHandle {    zw ErrorHandle  }    }
+]]></Implementation>
+</Method>
+
+<Method name="readJSFunctionFromCacheClass">
+<Description><![CDATA[
+<pre>
+
+Варианты параметров классов 
+ 1) [ Language = cache, WebMethod ]
+ 2) [ Language = javascript, WebMethod ]
+
+Пример классов , которые будут интерпритированы в JS функции:
+    ClassMethod test2()as %String [ Language = cache, WebMethod ]{ zw  q ""}
+    ClientMethod test3() [ Language = javascript, WebMethod ]{    alert('test3()');}
+    Property cspXMLHttp As %String [ ServerOnly = 1 ];
+    Property cspUseGetMethod As %Boolean [ InitialExpression = 0, ServerOnly = 1 ];
+    Property cspMozilla As %Boolean [ InitialExpression = "nill", ServerOnly = 1 ];
+   
+</pre>
+ <h2>Переписать  %Library.ClassDefinition на  <h2>]]></Description>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>ParentClassName="",MethodName="",DrawDescript=1</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+     s onEventFun=",onblur,onerror,onfocus,onload,onresize,onscroll,onbeforeunload,onhashchange,onlanguagechange,onmessage,onoffline,ononline,onpagehide,onpageshow,onpopstate,onrejectionhandled,onstorage,onunhandledrejection,onunload,onabort,oncancel,oncanplay,oncanplaythrough,onchange,onclick,onclose,oncontextmenu,oncuechange,ondblclick,ondrag,ondragend,ondragenter,ondragleave,ondragover,ondragstart,ondrop,ondurationchange,onemptied,onended,oninput,oninvalid,onkeydown,onkeypress,onkeyup,onloadeddata,onloadedmetadata,onloadstart,onmousedown,onmouseenter,onmouseleave,onmousemove,onmouseout,onmouseover,onmouseup,onmousewheel,onpause,onplay,onplaying,onprogress,onratechange,onreset,onseeked,onseeking,onselect,onshow,onstalled,onsubmit,onsuspend,ontimeupdate,ontoggle,onvolumechange,onwaiting,onauxclick,ongotpointercapture,onlostpointercapture,onpointercancel,onpointerdown,onpointerenter,onpointerleave,onpointermove,onpointerout,onpointerover,onpointerup,onbeforecopy,onbeforecut,onbeforepaste,oncopy,oncut,onpaste,onsearch,onselectstart,onwheel,onwebkitfullscreenchange,onwebkitfullscreenerror"
+     s ClassOref=##class(%ClassDefinition).%OpenId(ParentClassName)
+     if ClassOref {
+       s ConstructMethod=$p(ParentClassName,".",$l(ParentClassName,"."))
+       s count=ClassOref.Properties.Count() 
+       for i=1:1:count {
+            s nam=ClassOref.Properties.GetAt(i).Name
+            continue:'$d(^oddDEF(ParentClassName,"a",nam,57))
+            continue:^oddDEF(ParentClassName,"a",nam,57)'=1
+            w "  var "_ClassOref.Properties.GetAt(i).Name_" "
+            if $d(^oddDEF(ParentClassName,"a",nam,31)) {
+                 s val=^oddDEF(ParentClassName,"a",nam,31)
+                 if val="""null""" w "=null;"_$c(13,10)  continue
+                 s typ=""
+                 if $d(^oddDEF(ParentClassName,"a",nam,5)) {
+                    s typ=^oddDEF(ParentClassName,"a",nam,5)
+                    if $e(typ,1,1)="%",$l(typ,".")=1 {
+                       s typ=$REPLACE(typ,"%","%Library.")
+                    }
+                 }   
+                 if typ="" {
+                     if $l(typ ," ")=1 { w "="_$e(val,2,$l(val)-1)_";"_$c(13,10)  continue }
+                    try {   x "w "_val   }catch(e){  w "="_$e(val,2,$l(val)-1)_";"_$c(13,10)  continue }
+                 }
+                 
+                 if typ="%Library.Boolean" {
+                      if $e(val,1,1)="""" {
+                         w "=" 
+                         try {   x "w "_val   }catch(e){  if +val=1 { w "=true"  }else     { w "=false" }   }
+                      }else {
+                        if val=1 { w "=true"  }else     { w "=false" }
+                      }
+                 }elseif  typ="%Library.Integer" {
+                     if $e(val,1,1)="""" {
+                         w "=" 
+                         try {   x "w "_val   }catch(e){  s val=+val  w val }
+                      } else {
+                          s val=+val  w val
+                      } 
+                 }else{
+	                 
+                     if $e(val,1,1)'="""" {
+                           w "=""" 
+                           try {   x "w "_val   }catch(e){  w val   }
+                           w """"
+                      }else {
+                         w "="_val
+                      } 
+                 }
+            }
+            w ";"_$c(13,10) 
+       }
+       s ConstructMethodIndex=""
+       s count=ClassOref.Methods.Count()
+       for i=1:1:count {
+            if (MethodName=""){
+               continue:$l(ClassOref.Methods.GetAt(i).Name,"OnPage")'=1
+               continue:ClassOref.Methods.GetAt(i).Name="OnPreHTTP"
+               continue:ClassOref.Methods.GetAt(i).Name="OnPostHTTP"
+               continue:ClassOref.Methods.GetAt(i).Name="getLibOne"
+               continue:ClassOref.Methods.GetAt(i).Name="GetJSMethodFromClientMethod"
+               continue:ClassOref.Methods.GetAt(i).Name="readJSFunctionFromCacheClass"
+            }else{
+                continue:ClassOref.Methods.GetAt(i).Name'=MethodName   
+            }
+           /// [ ServerOnly = 1 ]
+           // continue:'$d(^oddDEF(ParentClassName,"m",ClassOref.Methods.GetAt(i).Name,59))
+           // continue:^oddDEF(ParentClassName,"m",ClassOref.Methods.GetAt(i).Name,59)'=1
+           
+           /// [ WebMethod ]
+           continue:'$d(^oddDEF(ParentClassName,"m",ClassOref.Methods.GetAt(i).Name,51))
+           continue:^oddDEF(ParentClassName,"m",ClassOref.Methods.GetAt(i).Name,51)'=1
+          
+          if $ZCVT(ClassOref.Methods.GetAt(i).Name,"L")=$ZCVT(ConstructMethod,"L"){
+             s ConstructMethodIndex=i
+             continue    
+          }
+          
+          if DrawDescript=1 {
+             if $l(ClassOref.Methods.GetAt(i).Description)>0,ParentClassName'=##this{
+                w !,"/*",!
+                w $replace(ClassOref.Methods.GetAt(i).Description,"*/","-/-")
+                w !,"*/"
+             }
+          }
+          // Получаем JS представление Cache клиент метода
+           if ClassOref.Methods.GetAt(i).Language="javascript" {
+               w !,"var "_ClassOref.Methods.GetAt(i).Name_"=function("
+               s param=ClassOref.Methods.GetAt(i).FormalSpec
+               for ind=1:1:$l(param,","){
+                   s subParam=$p(param,",",ind)
+                   s subParam=$p(subParam,":",1)
+                   s subParam=$p(subParam,"=",1)
+                   w:ind'=1 ","
+                   w subParam
+               }
+               w "){",!
+                 d ..ExecFrag(ClassOref.Methods.GetAt(i).Code,"/*(",")*/")
+                 // w ClassOref.Methods.GetAt(i).Code
+                 w !,"};"
+                
+            }
+           // Получаем JS представление Cache класс метода
+           if ClassOref.Methods.GetAt(i).Language="cache" {
+                   w !,"var "_ClassOref.Methods.GetAt(i).Name_"=function(){",!
+                   ; if $d(^oddDEF(ParentClassName,"m",ClassOref.Methods.GetAt(i).Name,42)){ w "return "}
+                   ; s WEVENT=$$$cspEncode(%session.Key,$lb(ParentClassName_"."_ClassOref.Methods.GetAt(i).Name))
+                   s WEVENT=ParentClassName_"."_ClassOref.Methods.GetAt(i).Name
+                  if '$d(^oddDEF(ParentClassName,"m",ClassOref.Methods.GetAt(i).Name,42)) {
+                        &js< try { var res=cspHttpServerMethod('#(WEVENT)#',arguments); eval(res); }catch (e) { return res}>
+                  } Else {
+                     w "   return cspHttpServerMethod('"_WEVENT_"',arguments);"
+                  }
+                  w !,"};"
+           }
+                
+         }
+         // После отрисовки функций, создаем конструктор( если конечно он встретился ранее)
+         if ConstructMethodIndex'="" {
+           s i=ConstructMethodIndex
+           if ClassOref.Methods.GetAt(i).Language="javascript" {
+              d ..ExecFrag(ClassOref.Methods.GetAt(i).Code,"/*(",")*/")
+           }
+           if ClassOref.Methods.GetAt(i).Language="cache" {
+              ; s WEVENT=$$$cspEncode(%session.Key,$lb(ParentClassName_"."_ClassOref.Methods.GetAt(i).Name))
+              s WEVENT=ParentClassName_"."_ClassOref.Methods.GetAt(i).Name
+              w " cspHttpServerMethod('"_WEVENT_"',arguments);"
+           }
+         }
+       }
+       q ""
+]]></Implementation>
+</Method>
+
+<Method name="IncludeJsFun">
+<ClassMethod>1</ClassMethod>
+<Implementation><![CDATA[
+	   s ClassCSP=%request.Get("include","")
+  	   s ClassCSP=$tr(ClassCSP," ","")
+       k filtr
+	   for ind=1:1:$l(ClassCSP,","){
+          // Если класс есть, тогда интерпритируем 
+	      if $zObjClassMethod("%CompiledClass","%ExistsId",$p(ClassCSP,",",ind))=1 {
+	             d $system.OBJ.GetDependencies($p(ClassCSP,",",ind),.included)
+                 s ClassParentTmp=""
+                 for {
+                    s ClassParentTmp=$o(included(ClassParentTmp))
+                    q:ClassParentTmp=""
+                    continue:$d(filtr(ClassParentTmp))
+                    d ..readJSFunctionFromCacheClass(ClassParentTmp)
+                    s filtr(ClassParentTmp)=1
+                } 
+	     }else{
+		    // иначе проверяем есть ли такой пакет, и добавляем весь пакет
+		    s ClassTmpPacket=""
+		    for {
+		         s ClassTmpPacket=$o(^oddDEF(ClassTmpPacket))
+		         q:ClassTmpPacket=""  
+		         if $e(ClassTmpPacket,1,$l($p(ClassCSP,",",ind)))=$p(ClassCSP,",",ind){
+ 	                 d $system.OBJ.GetDependencies(ClassTmpPacket,.included)
+                     s ClassParentTmp=""
+                     for {
+                        s ClassParentTmp=$o(included(ClassParentTmp))
+                        q:ClassParentTmp=""
+                        continue:$d(filtrObj(ClassParentTmp))
+                        d ..readJSFunctionFromCacheClass(ClassParentTmp)
+                        s filtrObj(ClassParentTmp)=1
+                     } 
+		         }
+
+	     }}
+	   }
+]]></Implementation>
+</Method>
+
+<Method name="redirects">
+<Internal>1</Internal>
+<ClassMethod>1</ClassMethod>
+<ProcedureBlock>0</ProcedureBlock>
+<Implementation><![CDATA[
+wstr(s)  s ^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF")=$get(^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF"),0)  s ^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF",$i( ^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF") ))=s          q
+wchr(c)  s ^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF")=$get(^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF"),0)  s ^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF",$i( ^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF") ))=$c(c)      q
+wnl      s ^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF")=$get(^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF"),0)  s ^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF",$i( ^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF") ))=$$$NL      q
+wff      s ^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF")=$get(^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF"),0)  s ^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF",$i( ^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF") ))=$c(12)     q
+wtab(s)  s ^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF")=$get(^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF"),0)  s ^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF",$i( ^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF") ))=s          q
+]]></Implementation>
+</Method>
+
+<Method name="DrawBegin">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>JobId=$job</FormalSpec>
+<ProcedureBlock>1</ProcedureBlock>
+<Implementation><![CDATA[
+	k ^mtempZWebServerBufferRunJobOneDrawConsole($job,"BUFF")
+	s %LastIO=$IO
+    u %LastIO::("^"_$zn)
+    d ##class(%Device).ReDirectIO($$$YES)
+]]></Implementation>
+</Method>
+
+<Method name="DrawEnd">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>JobId=$job</FormalSpec>
+<Implementation><![CDATA[
+ 	d ##class(%Device).ReDirectIO($$$NO)
+    u %LastIO
+]]></Implementation>
+</Method>
+
+<Method name="GetSlash">
+<Description>
+ w ##class(%ZWeb.RunJobOne).GetSlash()</Description>
+<ClassMethod>1</ClassMethod>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+  s ver=$zv
+  s ver=$p(ver,"for ",2)
+  s ver=$p(ver," ",1)
+  if $l(ver,"UNIX")>1 q "/"
+  q "\"
+]]></Implementation>
+</Method>
+</Class>
+
+
 <Class name="%ZWeb.Server">
 <Description><![CDATA[
 <example>
@@ -627,13 +1312,12 @@
   d ##class(%ZWeb.Server).Stop(80)
   d ##class(%ZWeb.Server).Start(8228  , "C:\AppServ\www","DUBROVINO","index.htm" )
   d ##class(%ZWeb.Server).Start(6010  , "C:\AppServ\www","index.html" )
-  d ##class(%ZWeb.Server).Start(6010  , "C:\AppCacheSrv\www","index.html","user" )
-  d ##class(%ZWeb.Server).Start(6010  , "D:\sirena\env","sirena/index.csp","sirena" )
-  d ##class(%ZWeb.Server).Start(6010  , "E:\!5autoexport\myasnikovia\www","index.html","sirena" )
+  d ##class(%ZWeb.Server).Start(6010  , "C:\AppCacheSrv\www","user","index.html" )
+  d ##class(%ZWeb.Server).Start(6010  , "D:\sirena\env","sirena","sirena/index.csp" )
+  d ##class(%ZWeb.Server).Start(6010  , "E:\!5autoexport\myasnikovia\www","sirena","index.html" )
   d ##class(%ZWeb.Server).Stop()
 </example>]]></Description>
 <Super>%RegisteredObject</Super>
-<TimeChanged>64943,27625.302244</TimeChanged>
 <TimeCreated>64772,22000.244656</TimeCreated>
 
 <Method name="ExportUDL">
@@ -695,16 +1379,16 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
     e  d
     . s port=""
     . q:$d(^%ZWebServerCfg)
-    . f  s port=$o(^%ZWebServerCfg(port))  q:port=""   d
-    . .  s ^%ZWebServerKill(port)=1
+    . f   s port=$o(^%ZWebServerCfg(port))  q:port=""   d
+    . .   s ^%ZWebServerKill(port)=1
     . .   S httprequest=##class(%Net.HttpRequest).%New()
     . .   s httprequest.Server="127.0.0.1"
     . .   s httprequest.Port=port
     . .   s httprequest.Timeout=1
     . .   d httprequest.Get("/")
     . .   s httprequest=""
-    . .  h 1
-    . .  w !,"Server "_port_" stoped"
+    . .   h 1
+    . .   w !,"Server "_port_" stoped"
     q
 ]]></Implementation>
 </Method>
@@ -715,9 +1399,8 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
 
 Запустить работу сервера</Description>
 <ClassMethod>1</ClassMethod>
-<FormalSpec>port:%Integer=6010,pathHost:%String="C:\AppServ\www",startPage:%String="index.html",NameSpace=$ZU(5)</FormalSpec>
+<FormalSpec>port:%Integer=6010,startPage:%String="index.html"</FormalSpec>
 <Implementation><![CDATA[
-     s NameSpaceDefault=NameSpace
      s methodDefault = "OnPage"
      k ^%ZWebServerKill(port)
      ; 63991
@@ -727,14 +1410,12 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
      ; if $p($h,",",1)>(63991+60+60+60) w !,"Льготный период использования закончился. Обратитесь к автору за продлением.",!
      s port = $G(port)  
      s TimeOut=3200
-     s pathHost=$g(pathHost)
-     s NameSpaceDefault=$g(NameSpaceDefault)
      s startPage=$g(startPage)
      s methodDefault=$g(methodDefault )
           if $d(^%ZWebServerCfg(port)) d
           .    d ..Stop(port)
           .    k ^%ZWebServerCfg(port)
-          s ^%ZWebServerCfg(port)=$lb(port,TimeOut,pathHost,NameSpaceDefault, startPage,methodDefault)
+          s ^%ZWebServerCfg(port)=$lb(port,TimeOut,"","", startPage,methodDefault)
      s cmd="cmd /c  start ""explorer.exe""  ""http://127.0.0.1:"_port_"/"_startPage_""""
      ; d $zf(-1,cmd,1)
      job ..startJob(port)
@@ -825,11 +1506,10 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
 <Implementation><![CDATA[
 
    s TimeOut=$lg(^%ZWebServerCfg(port),2)
-   s pathHost=$lg(^%ZWebServerCfg(port),3)
-   s %NameSpaceDefault=$lg(^%ZWebServerCfg(port),4)
    s startPage=$lg(^%ZWebServerCfg(port),5)
    s methodDefault=$lg(^%ZWebServerCfg(port),6)
    zn "%SYS" ; переключаем область имен
+   s %CacheClassLibCSP= "%ZWeb.RunJobOne"
    s numPac=0
    s isCloseChaild=0 
    s SocketTempIndex=0
@@ -847,7 +1527,6 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
    Do %response.SetHeader("Content-Type","text/html")   
    d %request.InsertCgiEnv("Cache version",$$GetVersion^%apiOBJ())
    d %request.InsertCgiEnv("Cache port",port)
-   d %request.InsertCgiEnv("LOCAL_PATH",pathHost)
    d %request.InsertCgiEnv("QUERY_PAGE",startPage)
    d %request.InsertCgiEnv("CLIENT_IP",ip)
    d %request.InsertCgiEnv("REMOTE_ADDR",$ZU(67, 15, $job))
@@ -904,11 +1583,12 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
    .      .        }
    .      .        if $l(zapros,"csp/broker/cspbroker.js")=2 {
    .      .           s %FallLoadRunJob=1
-   .      .           s zapros=$replace(zapros,"cspbroker.js", "%25ZWeb.RunJob.cls")
+   .      .           s zapros=$replace(zapros,"cspbroker.js", %CacheClassLibCSP_".cls")
    .      .        }
    .      .   
-   .      .   Do %request.InsertCgiEnv("PATH_TRANSLATED",$tr(pathHost_"/"_zapros,"/","\"))
    .      .   Do %request.InsertCgiEnv("QUERY_STRING",zapros)
+   .      .   Do %request.InsertCgiEnv("PATH_TRANSLATED",$SYSTEM.CSP.GetFileName("/"_zapros))
+   .      .   Do %request.InsertCgiEnv("LOCAL_PATH",$SYSTEM.CSP.GetFileName("/"_zapros))   
    .      .   Do %request.InsertCgiEnv("SERVER_ADDR",$p(ip,":",1))   
    .      .   Do %request.InsertCgiEnv("REMOTE_PORT",$p(ip,":",2))   
    .      .   Do %request.Set("clientip",ip) 
@@ -1002,7 +1682,7 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
    ;  if '$d(^iplist(ipOne)) { s ^iplist(ipOne)=0}
    ;  s ^iplist(ipOne)=^iplist(ipOne)+1
    ;  s ^iplist(ipOne,^iplist(ipOne),$zd(+$h,4),$zt($p($h,",",2)))=DebInf
-   /// зашита от злоумышлеников
+  /// зашита от злоумышлеников
   // if ..TestHacker(DebInf)=1
   // {
   //     w "HTTP/1.1 200",$c(13,10)
@@ -1025,7 +1705,7 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
      ; .    s ^debug($job,numPack)=inData
    }
   ;  если обрабатываем  терминальный запрос , тогда выходим
-    q:isTerminal=1
+  q:isTerminal=1
  
  
   ; 
@@ -1035,7 +1715,7 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
   ; Разбираем параметры из URL строки 
    d ..ParseParam(zapros)
   ; Инициируем сесию ---
-    d ..InitSession()
+  d ..InitSession()
    
    if ..GerUrlContent(zapros)=1 q
    
@@ -1099,23 +1779,11 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
     d %request.InsertCgiEnv("CONTENT_TYP",typ)
     ;  Если етсьпараметр "typ" тогда меняем тип содержимого
        if $l(%request.Get("typ",""))>0  d %request.InsertCgiEnv("CONTENT_TYP",%request.Get("typ","")) 
-  
-     ; Выводим содержимое из каталога
-       s PathFileLocal=%request.CgiEnvs("PATH_TRANSLATED")
-       if $d(%NameSpaceDefault){ 
-         zn %NameSpaceDefault
-       }else{
-	     zn "%SYS"     
-       }
-       if ..GetRawHtml(PathFileLocal)=1  d ..clsConnect() q 1
        zn "%SYS"     ; ???
-  
        if $l(%request.Get("namespace",""))'=0     d $zu(5,%request.Get("namespace","")) 
-       
        ; Переключаем область имен по Вэб приложению
        d $zu(5,"%SYS") 
        ;  if %FallLoadRunJob=1 
-       
        s app=$SYSTEM.CSP.GetAppName(%request.CgiEnvs("QUERY_PAGE"))
        s app="/"_$e(app,1,$l(app)-1)
        s SqlStrTmp=" select TOP 1 NameLowerCase,NameSpace,Path,NameLowerCase from Security.Applications where id=?"
@@ -1135,16 +1803,17 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
           q 1
        }
        ; -------------------------------------------------------------------
- 
-   ; Имя класса
-   s ClassNameCsp=$SYSTEM.CSP.GetClassName("/"_%request.CgiEnvs("QUERY_PAGE"))
-   if ..GetClsHtml(ClassNameCsp,0,0)=1    d ..clsConnect() q 1
-  
-   s ShortPage=$e(%request.CgiEnvs("QUERY_PAGE"),$l(app),$l(%request.CgiEnvs("QUERY_PAGE")))
-   s PathFileLocal=$tr(Path_ShortPage,"/","\")
-   if ..GetRawHtml(PathFileLocal)=1  d ..clsConnect() q 1
-  
-   q 0
+       ; Имя класса
+       s ClassNameCsp=$SYSTEM.CSP.GetClassName("/"_%request.CgiEnvs("QUERY_PAGE"))
+       if ..GetClsHtml(ClassNameCsp,0,0)=1    d ..clsConnect() q 1 
+       s PathFileLocal=$SYSTEM.CSP.GetFileName("/"_%request.CgiEnvs("QUERY_PAGE"))
+       if ..GetRawHtml(PathFileLocal)=1  d ..clsConnect() q 1
+       
+       ; s ShortPage=$e(%request.CgiEnvs("QUERY_PAGE"),$l(app),$l(%request.CgiEnvs("QUERY_PAGE")))
+       ; // w $SYSTEM.CSP.GetFileName("/csp/user/Untitled1.CSP")
+       ; s PathFileLocal=$tr(Path_ShortPage,"/","\")
+       ; if ..GetRawHtml(PathFileLocal)=1  d ..clsConnect() q 1
+       q 0
 ]]></Implementation>
 </Method>
 
@@ -1160,10 +1829,13 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
    ; s pass=ipKey,HashPwd="" 
    ; F ix489=1:1:7 { S HashPwd=HashPwd_$ZCRC(pass,ix489)}  
    ; s ipKey=HashPwd
+  
    if ##class(%CSP.Session).%ExistsId(ipKey)=1{
-       s %session=##class(%CSP.Session).%OpenId(ipKey)
+       s %session=##class(%ZWeb.Session).%OpenId(ipKey)
    } else {
-       s %session=##class(%CSP.Session).%New(ipKey)
+       //s %session=##class(%CSP.Session).%New(ipKey)
+       s %session=##class(%ZWeb.Session).%New(ipKey)
+       
    }
    s %session.ProcessId="|"_$zu(5)_"|"_zapros ;  "%ZWeb.Server: job"_$job_" "
    S %session.AppTimeout = %request.GetCgiEnv("TIME_OUT")
@@ -1459,8 +2131,9 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
 <FormalSpec>rawFileName,isHtmlFile=1</FormalSpec>
 <ReturnType>%String</ReturnType>
 <Implementation><![CDATA[
-      if isHtmlFile=1,$zObjClassMethod("%CompiledClass","%ExistsId","%ZWeb.RunJob")=1 {
-         &html<<script language="JavaScript" type="text/javascript" src="#($SYSTEM.CSP.GetDefaultApp($ZU(5)))#/#($zcvt("%ZWeb.RunJob","O","URL"))#.cls"></script> >
+      if isHtmlFile=1,$zObjClassMethod("%CompiledClass","%ExistsId",%CacheClassLibCSP)=1 {
+         s app=$SYSTEM.CSP.GetAppName(%request.CgiEnvs("QUERY_PAGE")_"/")
+         &html<<script language="JavaScript" type="text/javascript" src="#(app)#/#($zcvt(%CacheClassLibCSP,"O","URL"))#.cls"></script> >
       }
       S stream=##class(%FileBinaryStream).%New()
       S stream.Filename=rawFileName 
@@ -1490,7 +2163,11 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
     if $d(%session){
       s funName=$$$cspEncode(%session.Key,$lb(funName))
     }             
-	w JsFunName_"('"_funName_"',"_args_")"
+    if $l(args)>0 {
+	   w JsFunName_"('"_funName_"',"_args_")"
+    }else{
+	   w JsFunName_"('"_funName_"')"
+    }
 	q ""
 ]]></Implementation>
 </Method>
@@ -1548,11 +2225,11 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
 <FormalSpec>ClassName,addLib=0,ReadFromBuff=1</FormalSpec>
 <ReturnType>%Boolean</ReturnType>
 <Implementation><![CDATA[
-    if $l(ClassName)'=0 {
+   if $l(ClassName)'=0 {
       ; if $zcvt($e(ClassName,$l(ClassName)-$l("cls"),$l(ClassName)) ,"L")=".cls" {
       ;    s ClassName=$e(ClassName,1,$l(ClassName)-$l(".cls"))          
       ; }
-        if $zObjClassMethod("%CompiledClass","%ExistsId",ClassName)=1 {
+     if $zObjClassMethod("%CompiledClass","%ExistsId",ClassName)=1 {
 	   if ReadFromBuff=1{     
          k ^||tmpLocal
          s %LastIO=$IO  u %LastIO::("^"_$zn) d ##class(%Device).ReDirectIO($$$YES) 
@@ -1593,13 +2270,13 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
                 if %response.ContentType["html" {
                   ;   <script  type='text/javascript' src='/csp/broker/cspxmlhttp.js'></script>
                   ;   <script  type='text/javascript' src='/csp/broker/cspbroker.js'></script>
-                 ;  if $zObjClassMethod("%CompiledClass","%ExistsId","%ZWeb.RunJob")=1 {
-                 ;    &html<<script language="JavaScript" type="text/javascript" src="#($SYSTEM.CSP.GetDefaultApp($ZU(5)))#/#($zcvt("%ZWeb.RunJob","O","URL"))#.cls"></script> >
-                 ;  }
+                  ;  if $zObjClassMethod("%CompiledClass","%ExistsId",%CacheClassLibCSP)=1 {
+                  ;    &html<<script language="JavaScript" type="text/javascript" src="#($SYSTEM.CSP.GetDefaultApp($ZU(5)))#/#($zcvt(%CacheClassLibCSP,"O","URL"))#.cls"></script> >
+                  ;  }
                }
             ; }
              d $zObjClassMethod(ClassName,"OnPage")   
-             }CATCH err{ zw err }
+            }CATCH err{ zw err }
       
           if ReadFromBuff=1{     
              d ##class(%Device).ReDirectIO($$$NO)  u %LastIO
@@ -1889,4 +2566,1987 @@ wtab(s) s ^||tmpLocal($i(^||tmpLocal))=s        q
 ]]></Implementation>
 </Method>
 </Class>
+
+
+<Class name="%ZWeb.Session">
+<Description>
+, %sySecurity, %occDiagnostics</Description>
+<IncludeCode>%cspBuild</IncludeCode>
+<StorageStrategy>Default</StorageStrategy>
+<Super>%Library.Persistent</Super>
+<TimeCreated>65250,56030.76801</TimeCreated>
+
+<Property name="EndSession">
+<Description>
+A flag that you set to '1' to terminate this session upon completion 
+of this request.</Description>
+<Type>%Boolean</Type>
+<InitialExpression>0</InitialExpression>
+</Property>
+
+<Property name="SessionId">
+<Description><![CDATA[
+The session id value for this session.
+<P>The session id is a system-assigned unique value that 
+identifies this session.]]></Description>
+<Type>%String</Type>
+</Property>
+
+<Property name="GroupId">
+<Description>
+Group Id
+If an group-by-id application was opened, this will contain
+the groupId concatenated with the browser's id</Description>
+<Type>%String</Type>
+<Internal>1</Internal>
+<Parameter name="MAXLEN"/>
+</Property>
+
+<Property name="ByIdGroups">
+<Description>
+ByIdGroups
+A list of all by-id groups applications opened have been members of. Used to remove this session from groups</Description>
+<Type>%List</Type>
+<Internal>1</Internal>
+</Property>
+
+<Property name="ProcessId">
+<Description><![CDATA[
+Process Id
+<p>If a session has Preserve=1 this contains the process id in which the session is running.></p>]]></Description>
+<Type>%String</Type>
+</Property>
+
+<Method name="EndSessionSet">
+<Internal>1</Internal>
+<FormalSpec>val:%Boolean</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	If val=i%EndSession Quit $$$OK
+	If $isobject($get(%response)) {
+		Do %response.EndSession(val)
+	}
+	Set i%EndSession=''val
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Property name="AppTimeout">
+<Description><![CDATA[
+Specifies the timeout value for the session in seconds.
+<P>If no user requests are received within the specified time period, 
+then the session will end. The default value comes from the CSP application
+setting for the application that the session starts in which is set in the
+Cache configuration manager, this is often 900 seconds or 15 minutes.
+Note that if you start a session in one applicaiton and move to another application
+the AppTimeout will not be changed to the new applications timeout value, if you wish
+to modify this when the application changes you can use the session events 'OnApplicationChange'
+method.
+<P>For no timeout, set this property to 0.]]></Description>
+<Type>%Integer</Type>
+<InitialExpression>900</InitialExpression>
+</Property>
+
+<Property name="SecureSessionCookie">
+<Description>
+Internal property to determine if we should send the 'secure' flag with the sessionId cookie</Description>
+<Type>%Boolean</Type>
+<InitialExpression>0</InitialExpression>
+</Property>
+
+<Property name="RunNamespace">
+<Description>
+If set then run this session in the namespace given rather than the one determined
+by the CSP application. If the application then switches applications again it will revert
+to the namespace determined by the CSP application.</Description>
+<Type>%String</Type>
+</Property>
+
+<Method name="RunNamespaceSet">
+<FormalSpec>val:%String,app:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	#Dim i,oldval
+	If '$data(app) Set app=..Application
+	For i=1:1:$length(i%RunNamespace,",")+1 If $piece($piece(i%RunNamespace,",",i),"=")=app Quit
+	Set oldval=i%RunNamespace,$piece(oldval,",",i)=app_"="_val,i%RunNamespace=oldval
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="RunNamespaceGet">
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[	Quit ..RunNamespaceFind(..Application)
+]]></Implementation>
+</Method>
+
+<Method name="RunNamespaceFind">
+<FormalSpec>application:%String</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	#Dim namespace,i
+	Set namespace=""
+	For i=1:1:$length(i%RunNamespace,",") If $piece($piece(i%RunNamespace,",",i),"=")=application Set namespace=$piece($piece(i%RunNamespace,",",i),"=",2) Quit
+	$$$CSPLogAll(3,"CSPSession","[RunNamespaceFind] Found: "_$get(namespace,"#MISSING#")_" for application: "_$get(application,"#ERROR NO APPLICATION#"), i%RunNamespace,"",i%SessionId)
+	Quit namespace
+]]></Implementation>
+</Method>
+
+<Property name="ErrorPage">
+<Description>
+If set then use this page as the error page rather than the one obtained from the
+CSP application settings.</Description>
+<Type>%String</Type>
+<Parameter name="MAXLEN"/>
+</Property>
+
+<Property name="Referrer">
+<Description>
+Original referrer when session was created, copied from the HTTP_REFERER %request value</Description>
+<Type>%String</Type>
+<Parameter name="MAXLEN"/>
+</Property>
+
+<Method name="ReferrerSet">
+<FormalSpec>val:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	Set i%Referrer=val
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Property name="EventClass">
+<Description><![CDATA[
+The name of the application event class to be called in response to certain CSP events.
+This should be a class derived from <class>%CSP.SessionEvents</class>. At present the
+events that are fired are for creation of a new session (OnStartSession), deletion of a
+session (OnEndSession) and the timeout of an existing session by the CSP daemon (OnTimeout).
+You can set the event class for a CSP application in the CSP options of the configuration manager.
+Note that if you set the EventClass inside a CSP page then as the session has already been
+created at this point it will not fire the OnStartSession event, if the EventClass is set in the
+CSP application settings then it will fire the start session event as it knows which event class
+to call before it creates the session.<br>
+Note that this adds this event class to the list unless it is already present and will not replace any
+existing event class. Setting this to "" will not have any effect, if you wish to remove an
+EventClass then call <method>EventClassRemove</method>]]></Description>
+<Type>%String</Type>
+<Calculated>1</Calculated>
+<Parameter name="MAXLEN"/>
+</Property>
+
+<Method name="EventClassSet">
+<Description>
+Set method for EventClass property.</Description>
+<Internal>1</Internal>
+<FormalSpec>class:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[	Quit ..EventClassAdd(class,$namespace)
+]]></Implementation>
+</Method>
+
+<Method name="EventClassGet">
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[	Quit $listget($listget(i%EventClassContext))
+]]></Implementation>
+</Method>
+
+<Method name="EventClassAdd">
+<Description>
+Add an event class to the list of classes we will callback. If the class is already present we will
+remove it and add this at the front of the list.
+The namespace is optional and will default to the current namespace.</Description>
+<FormalSpec>class:%String,namespace:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	if ( class'="" ) {
+		If $get(namespace)="" Set namespace=$namespace
+		#; If it is already present use a new copy of it uses the current security context
+		Do ..EventClassRemove(class,namespace)
+		Set i%EventClassContext=$listbuild($listbuild(class,namespace,))_i%EventClassContext
+	}
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="EventClassRemove">
+<Description><![CDATA[
+Remove an event class from the set of event classes we will run on session events.
+The namespace is optional and will default to the current namespace. Returns true if it removed
+the class and false if it did not. If <var>class</var> is null then it will remove all event
+classes defined in this namespace.]]></Description>
+<FormalSpec>class:%String,namespace:%String</FormalSpec>
+<ReturnType>%Boolean</ReturnType>
+<Implementation><![CDATA[
+	#Dim return,eventclasscontext,i,item
+	Set return=0
+	If $get(namespace)="" Set namespace=$namespace
+	Set eventclasscontext=i%EventClassContext
+	For i=1:1:$listlength(eventclasscontext) {
+		Set item=$listget(eventclasscontext,i)
+		If $list(item)=class||(class=""),$list(item,$$$ecNamespaceIdx)=namespace {
+			Set eventclasscontext=$list(eventclasscontext,1,i-1)_$list(eventclasscontext,i+1,*),return=1
+			Quit
+		}
+	}
+	Set i%EventClassContext=eventclasscontext
+	Quit return
+]]></Implementation>
+</Method>
+
+<Method name="EventClassExists">
+<Description>
+Return true if this event class is present in the current session event list or false otherwise.
+The namespace is optional and will default to the current namespace.</Description>
+<FormalSpec>class:%String,namespace:%String</FormalSpec>
+<ReturnType>%Boolean</ReturnType>
+<Implementation><![CDATA[
+	#Dim return,eventclasscontext,i,item
+	If $get(namespace)="" Set namespace=$namespace
+	Set return=0
+	Set eventclasscontext=i%EventClassContext
+	For i=1:1:$listlength(eventclasscontext) {
+		Set item=$listget(eventclasscontext,i)
+		If $list(item)=class,$list(item,$$$ecNamespaceIdx)=namespace Set return=1 Quit
+	}
+	Quit return
+]]></Implementation>
+</Method>
+
+<Method name="EventClassClear">
+<Description>
+Remove all event classes from the event class list</Description>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	Set i%EventClassContext=""
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="EventClassList">
+<Description>
+Return an array of Array(namespace,classname)="" of the currently defined event classes</Description>
+<FormalSpec><![CDATA[&Array:%String]]></FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	#Dim eventclasscontext,i,item
+	Set eventclasscontext=i%EventClassContext
+	For i=1:1:$listlength(eventclasscontext) {
+		Set item=$listget(eventclasscontext,i)
+		Set Array($list(item,$$$ecNamespaceIdx),$list(item))=""
+	}
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="EventClassFix">
+<Description>
+Internal method to fix context of event class</Description>
+<Internal>1</Internal>
+<FormalSpec>context:%String</FormalSpec>
+<Private>1</Private>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	#Dim eventclasscontext,i,item
+	Set eventclasscontext=i%EventClassContext
+	For i=1:1:$listlength(eventclasscontext) {
+		Set item=$listget(eventclasscontext,i)
+		If $listdata(item,$$$ecSecContextIdx)=0 Set $list(item,$$$ecSecContextIdx)=context,$list(eventclasscontext,i)=item
+	}
+	Set i%EventClassContext=eventclasscontext
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Property name="EventClassContext">
+<Type>%String</Type>
+<Internal>1</Internal>
+<Private>1</Private>
+<Parameter name="MAXLEN"/>
+</Property>
+
+<Property name="StickyLogin">
+<Description>
+The StickyLogin is a description of the user authentication most recently attempted in this session. This is for internal use of the CSP Server.</Description>
+<Type>%String</Type>
+<Internal>1</Internal>
+<Private>1</Private>
+<Parameter name="MAXLEN"/>
+</Property>
+
+<Method name="StickyLoginGet">
+<Internal>1</Internal>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	#dim routine
+	
+	Set routine=$piece($zutil(41,$zutil(41)-1),"^",3)
+	If routine'="%SYS.cspServer" {
+		Quit ""
+	}
+
+	Quit $get(i%StickyLogin)
+]]></Implementation>
+</Method>
+
+<Method name="StickyLoginSet">
+<Description>
+stickyLogin is an exported security context</Description>
+<Internal>1</Internal>
+<FormalSpec>stickyLogin:%String</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	#dim routine
+	
+	Set routine=$piece($zutil(41,$zutil(41)-1),"^",3)
+	If routine'="%SYS.cspServer" {
+		Quit $$$ERROR($$$CSPSecContextCaller)
+	}
+	Set i%StickyLogin=stickyLogin
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Property name="Namespace">
+<Description>
+The namespace this session was created from. This is set automatically when the
+class is created to the current namespace. It is used by the session daemon so
+that it can swap to the right namespace to run the timeout method on applications.</Description>
+<Type>%String</Type>
+</Property>
+
+<Property name="Preserve">
+<Description><![CDATA[
+A flag specifying the level of state preservation required by 
+this session. You can change the value of this flag at any time.
+<P>This can take one of the following values:
+<UL>
+<LI><B>0</B> The only state information that is preserved is the information in the %session object.</LI>
+<LI><B>1</B> The entire state of the session process is preserved from one request to the next.
+This means that you tie up this Cache process for just this one user. As it uses the same process
+all local variables, locks, etc. are preserved from one request to the next.</LI>
+</UL>]]></Description>
+<Type>%Integer</Type>
+<InitialExpression>0</InitialExpression>
+</Property>
+
+<Method name="PreserveSet">
+<Description>
+Set method for Preserve property.</Description>
+<Internal>1</Internal>
+<FormalSpec>val:%Integer</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	If val=1,$isobject($get(%request)),'%request.CSPGatewayRequest Set sc=$$$ERROR($$$CSPPreserveInvalid) Do $zutil(96,3,92,1)
+	Set i%Preserve=''val
+	#; If debugging and they turn off Preserve mode do not let them!
+	If i%Debug,val=0 Set val=1
+	If $isobject($get(%response)) Do %response.SetPreserve(val)
+	Set $extract(i%CSPSessionCookie,4)=$select(val:"p",1:"0")
+	Do ..UpdateHMAC()
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Property name="MessageNumber">
+<Description>
+Counter used internally that holds the number of times this session is used.</Description>
+<Type>%Integer</Type>
+<Internal>1</Internal>
+<InitialExpression>0</InitialExpression>
+</Property>
+
+<Method name="MessageNumberSet">
+<Description>
+Set method for MessageNumber property.</Description>
+<Internal>1</Internal>
+<FormalSpec>val:%Integer</FormalSpec>
+<Private>1</Private>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	Set i%MessageNumber=val
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Property name="PersistentHeaders">
+<Description>
+Any headers we wish to sent on every request for this session</Description>
+<Type>%String</Type>
+<Internal>1</Internal>
+<Parameter name="MAXLEN"/>
+</Property>
+
+<Method name="PersistentHeadersSet">
+<Internal>1</Internal>
+<FormalSpec>val:%String</FormalSpec>
+<Private>1</Private>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	Set i%PersistentHeaders=val
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="SetPersistentHeader">
+<Description>
+Set a persistent HTTP header values in the %session object so it will be output for every response from this session.
+If there is already a header with this name then this will overwrite this prioir header.</Description>
+<FormalSpec>name:%String,value:%String</FormalSpec>
+<Implementation><![CDATA[
+	Set ptr=0,persistentheaders=i%PersistentHeaders,uppername=$zconvert(name,"U")
+	For i=1:1 {
+		If '$listnext(persistentheaders,ptr,header) {
+			#; No entry found so add it
+			Set i%PersistentHeaders=persistentheaders_$listbuild($listbuild(name,value))
+			Quit
+		}
+		If $zconvert($list(header),"U")=uppername {
+			#; Update existing entry
+			Set $list(persistentheaders,i)=$listbuild($listbuild(name,value))
+			Quit
+		}
+	}
+]]></Implementation>
+</Method>
+
+<Method name="GetPersistentHeader">
+<Description><![CDATA[
+Return the value of the persistent session <var>name</var> header.
+Note that <var>name</var> is not case sensitive]]></Description>
+<FormalSpec>name:%String</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	Set ptr=0,persistentheaders=i%PersistentHeaders,value="",uppername=$zconvert(name,"U")
+	While $listnext(persistentheaders,ptr,header) {
+		If $zconvert($list(header),"U")=uppername Set value=$list(header,2)
+	}
+	Quit value
+]]></Implementation>
+</Method>
+
+<Method name="DeletePersistentHeader">
+<Description><![CDATA[
+Remove a persistent header from the session Note that <var>name</var> is not case sensitive]]></Description>
+<FormalSpec>name:%String</FormalSpec>
+<Implementation><![CDATA[
+	Set ptr=0,persistentheaders=i%PersistentHeaders,uppername=$zconvert(name,"U")
+	For i=1:1 {
+		If '$listnext(persistentheaders,ptr,header) Quit
+		If $zconvert($list(header),"U")=uppername {
+			Set $list(persistentheaders,i,i)="",i%PersistentHeaders=persistentheaders
+			Quit
+		}
+	}
+]]></Implementation>
+</Method>
+
+<Property name="SOAPRequestCount">
+<Description>
+Counter of number of SOAP requests made to this Session</Description>
+<Type>%Integer</Type>
+<Internal>1</Internal>
+<InitialExpression>0</InitialExpression>
+</Property>
+
+<Method name="UpdateHMAC">
+<Description>
+Update the HMAC portion of the session token</Description>
+<Internal>1</Internal>
+<Implementation><![CDATA[
+	Set token=$extract(i%CSPSessionCookie,1,22)
+	Set hmac=$extract($$$cspBase64Encode($system.Encryption.HMACSHA(256,token,i%Key)),1,28)
+	Set i%CSPSessionCookie=token_hmac
+]]></Implementation>
+</Method>
+
+<Property name="Debug">
+<Description>
+This is true when this CSP session is being debugged, and false otherwise.
+It is set automatically by the CSP dispatch engine and you should not 
+alter its value yourself.</Description>
+<Type>%Boolean</Type>
+<InitialExpression>0</InitialExpression>
+</Property>
+
+<Method name="DebugSet">
+<Description>
+Set method for Debug property.</Description>
+<Internal>1</Internal>
+<FormalSpec>val:%Integer</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	If val=i%Debug Quit $$$OK
+	Set i%Debug=val
+	#; Setting Debug=1 makes this session Preserve=1 without actually changing this property
+	If val {
+		If i%Preserve=0 {
+			Set ..Preserve=1
+			Set i%Preserve=0
+		}
+	} Else {
+		Set ..Preserve=i%Preserve
+	}
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Property name="NewSession">
+<Description>
+Indicates whether this is the first request of the 
+session (True) or a subsequent request (False).</Description>
+<Type>%Boolean</Type>
+<InitialExpression>1</InitialExpression>
+</Property>
+
+<Method name="NewSessionSet">
+<FormalSpec>val:%Boolean</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	If val=0 {
+		Set i%NewSession=0
+	} Else {
+		$$$CSPLogAll(1,"CSPSession","[NewSessionSet] Invalid attempt to set NewSession: "_val,"", "", i%SessionId )
+	}
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Property name="CookiePath">
+<Description>
+Record the path we sent the last session cookie with</Description>
+<Type>%String</Type>
+<Internal>1</Internal>
+<Parameter name="MAXLEN"/>
+</Property>
+
+<Property name="BrowserName">
+<Description>
+This property contains the browser name based on parsing the HTTP_USER_AGENT CGI variable.
+This property is set once when the session is created.
+Possible values are "IE", "Mozilla", "Netscape", "Safari" and "".
+Not all possible browsers are suppported and the value "" is used for unknown browsers.
+"Mozilla" is used for all Mozilla based browsers such as Mozilla and Firefox.</Description>
+<Type>%String</Type>
+<Parameter name="MAXLEN"/>
+</Property>
+
+<Method name="BrowserNameGet">
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	If i%BrowserName'=""||(i%UserAgent="") Quit i%BrowserName
+	Do ##class(%CSP.UserAgent).XMLHttpRequest(i%UserAgent,.browser,.platform,.version)
+	Set i%BrowserName=browser,i%BrowserPlatform=platform,i%BrowserVersion=version
+	Quit browser
+]]></Implementation>
+</Method>
+
+<Property name="BrowserPlatform">
+<Description>
+This property contains the browser operating system based on parsing the HTTP_USER_AGENT CGI variable.
+This property is set once when the session is created.
+Possible values are "Windows", "Macintosh", "X11" and "".
+Not all possible browsers are supported and the value "" is used for unknown browsers.</Description>
+<Type>%String</Type>
+<Parameter name="MAXLEN"/>
+</Property>
+
+<Method name="BrowserPlatformGet">
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	If i%BrowserPlatform'=""||(i%UserAgent="") Quit i%BrowserPlatform
+	Do ##class(%CSP.UserAgent).XMLHttpRequest(i%UserAgent,.browser,.platform,.version)
+	Set i%BrowserName=browser,i%BrowserPlatform=platform,i%BrowserVersion=version
+	Quit platform
+]]></Implementation>
+</Method>
+
+<Property name="BrowserVersion">
+<Description>
+This property contains the browser version based on parsing the HTTP_USER_AGENT CGI variable.
+This property is set once when the session is created.
+The version is "" or in the format "major.minor".
+Not all possible browsers are supported and the value "" is used for unknown browsers.</Description>
+<Type>%String</Type>
+<Parameter name="MAXLEN"/>
+</Property>
+
+<Method name="BrowserVersionGet">
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	If i%BrowserVersion'=""||(i%UserAgent="") Quit i%BrowserVersion
+	Do ##class(%CSP.UserAgent).XMLHttpRequest(i%UserAgent,.browser,.platform,.version)
+	Set i%BrowserName=browser,i%BrowserPlatform=platform,i%BrowserVersion=version
+	Quit version
+]]></Implementation>
+</Method>
+
+<Property name="UserAgent">
+<Description>
+Contains the HTTP_USER_AGENT CGI variable passed in the initial session request.</Description>
+<Type>%String</Type>
+<Parameter name="MAXLEN"/>
+</Property>
+
+<Property name="Key">
+<Description>
+Stores the encryption key used to validate and secure the communication with the browser.
+This key never leaves Cache.</Description>
+<Type>%String</Type>
+</Property>
+
+<Method name="KeySet">
+<Description>
+Private accessor method</Description>
+<Internal>1</Internal>
+<FormalSpec>val:%Boolean</FormalSpec>
+<Private>1</Private>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	Set i%Key=val
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Property name="UseSessionCookie">
+<Description><![CDATA[
+Indicates whether sessions should be maintained using cookies or not. There are three
+possible values:<ul>
+<li><b>0</b> - Never use cookies. This will pass the CSPCHD parameter around in all the
+url links and as hidden fields in the &lt;FORM&gt; elements.</li>
+<li><b>1</b> - Auto detect cookie support. This will start by trying to insert a cookie
+into the browser, if this fails it will switch to mode 0 and never use cookies for this
+session. The initial page will send both cookies to the browser and it will include the
+CSPCHD parameter in all links and forms.</li>
+<li><b>2</b> - Always use cookies. This will only use cookies so if the browser does not
+accept the cookie then the session state will not be maintained.</li>
+</ul>]]></Description>
+<Type>%Integer</Type>
+<InitialExpression>1</InitialExpression>
+</Property>
+
+<Property name="CSPSessionCookie">
+<Description>
+Used by the CSP Gateway to store the session Id on the browser. Do not alter this property.</Description>
+<Type>%String</Type>
+<Parameter name="MAXLEN"/>
+</Property>
+
+<Property name="Language">
+<Description>
+The language (RFC 1766 format) in which pages in this CSP session are to be displayed.
+The %session Language attribute is used as the default language for csp:text, span and div
+tags if %response.Language is not set. If %session.Language is not set by the program,
+then it will default to the best fit with the HTTP_ ACCEPT_LANGUAGE CGI variable.</Description>
+<Type>%String</Type>
+</Property>
+
+<Property name="LicenseId">
+<Description>
+Internal property that hold the name of the license that this session is associated with</Description>
+<Type>%String</Type>
+<Parameter name="MAXLEN"/>
+</Property>
+
+<Method name="LicenseIdSet">
+<Description>
+Set method for LicenseId property.</Description>
+<Internal>1</Internal>
+<FormalSpec>val:%String</FormalSpec>
+<Private>1</Private>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	Set i%LicenseId=val
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Property name="Username">
+<Description>
+The username this CSP session is logged in as.</Description>
+<Type>%String</Type>
+<Calculated>1</Calculated>
+<Parameter name="MAXLEN" value="128"/>
+</Property>
+
+<Method name="UsernameGet">
+<Description>
+Get method for Username property.</Description>
+<CodeMode>expression</CodeMode>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[$username
+]]></Implementation>
+</Method>
+
+<Property name="HttpAuthorization">
+<Description>
+If we are passed an 'Authorization' HTTP header the value is stored here to avoid
+attempting to login with this multiple times, for internal use only.</Description>
+<Type>%String</Type>
+<Parameter name="MAXLEN"/>
+</Property>
+
+<Property name="NoLicense">
+<Description>
+Record if we can not get a license for this session</Description>
+<Type>%Boolean</Type>
+<Internal>1</Internal>
+<InitialExpression>0</InitialExpression>
+<Private>1</Private>
+</Property>
+
+<Property name="KeepAlive">
+<Description>
+If true and the CSP gateway supports this then use the HTTP keep alive support to reuse the
+TCP/IP connection for any additional HTTP requests. If possible you should also supply the
+Content-Length header otherwise the CSP gateway will have to buffer the output in order to
+add the length of the message to the header. The default
+for this property is true to keep the connection alive where possible except for HTTP/1.0 responses
+where we will use the default for HTTP/1.0 which is to close the connection on each request.</Description>
+<Type>%Boolean</Type>
+<InitialExpression>1</InitialExpression>
+</Property>
+
+<Property name="Application">
+<Description>
+Stored the CSP application name so we can detect when the CSP application has changed.
+This is required so we can revalidate the user against any security permissions the other
+application requires that the first application does not. This is not set until the security
+context for this application is validated.</Description>
+<Type>%String</Type>
+<Parameter name="MAXLEN"/>
+</Property>
+
+<Method name="ApplicationSet">
+<Description>
+Set method for Application property.</Description>
+<Internal>1</Internal>
+<FormalSpec>val:%String</FormalSpec>
+<Private>1</Private>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	Set i%Application=val
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Property name="CreateTime">
+<Description>
+The data/time the session was created in UTC</Description>
+<Type>%TimeStamp</Type>
+</Property>
+
+<Method name="CreateTimeSet">
+<Description>
+Set method for CreateTime property.</Description>
+<Internal>1</Internal>
+<FormalSpec>val:%TimeStamp</FormalSpec>
+<Private>1</Private>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	Set i%CreateTime=val
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Property name="LastModified">
+<Description>
+The date/time when this session was last modified in UTC</Description>
+<Type>%TimeStamp</Type>
+</Property>
+
+<Method name="LastModifiedSet">
+<Description>
+Set method for LastModified property.</Description>
+<Internal>1</Internal>
+<FormalSpec>val:%TimeStamp</FormalSpec>
+<Private>1</Private>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	Set i%LastModified=val
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Property name="SecurityContext">
+<Description>
+For internal use only, holds a serialized form of the sessions security context</Description>
+<Type>%String</Type>
+<Internal>1</Internal>
+<Parameter name="MAXLEN"/>
+</Property>
+
+<Method name="SecurityContextSet">
+<Description>
+Set method for SecurityContext property.</Description>
+<Internal>1</Internal>
+<FormalSpec>val:%String</FormalSpec>
+<Private>1</Private>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	Set routine=$piece($zutil(41,$zutil(41)-1),"^",3)
+	If routine'="%SYS.cspServer" Quit $$$ERROR($$$CSPSecContextCaller)
+	Set i%SecurityContext=val
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Property name="OldTimeout">
+<Description>
+For internal use only</Description>
+<Type>%String</Type>
+<Internal>1</Internal>
+</Property>
+
+<Method name="OldTimeoutSet">
+<Internal>1</Internal>
+<FormalSpec>val:%String</FormalSpec>
+<Private>1</Private>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	Set i%OldTimeout=val
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="Login">
+<Description><![CDATA[
+Login with this username and password, returns a status code to show
+if it worked or not. This method also trades license units at the same time so
+this CSP session will be logged in as a named user.
+If you pass <var>type</var>=1 then this will trade licenses only and not login as this user.
+After the login completes it also updates the property <property>Username</property> to match the $username
+value this session is logged in as. The property <property>LicenseId</property> is also updated to be the
+license identifier that this session is logged in with.<br>
+If a login fails then the property <property>Username</property> and property <property>LicenseId</property>
+will remain at their previous values.
+If you pass <var>oldpassword</var> then this will attempt to change the password of <var>username</var> from
+<var>oldpassword</var> to <var>password</var> and login as this user.
+Note new status return values:
+CSP applications can be two-factor-enabled. If the current application is one such, then if Login() successfully 
+authenticates the username/password, it does not return $$$OK, but rather $$$CSPPendingTwoFactorAuthentication.
+During Two-Factor Authentication, an 8-character numeric security string will be sent to the user's 
+cellphone. You must obtain this string from the 
+user and call CompleteTwoFactorLogin^%CSP.Session() to complete authentication of this user.
+Also note that if the login SUCCEEDS (status returned will be $$$OK), but 
+you were unable to secure a license, the new apperr parameter will have the value of $$$CSPErrorTradeLicense. In such a case, 
+you may have to call the Login function again to trade a license. If you are calling merely to trade a license (type=1), then 
+if the license trade fails, Login will return a status of $$$CSPErrorTradeLicense.]]></Description>
+<FormalSpec>username:%String,password:%String="",type:%Integer=0,oldpassword:%String,apperr:%Status</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	#Dim loginstatus, newlicenseid
+	$$$SysLogSetVar
+	Set apperr = $$$OK
+	
+	if (type'=1) { //login in
+		Set loginstatus = $$CSPLogin^%SYS.cspServer($this,username,password,.oldpassword,.%request,.apperr,.newlicenseid )
+	}
+	else { //trading license
+		Set newlicenseid=$get(username)
+		If newlicenseid="" {
+			Set newlicenseid=$$$UnknownUserUsername
+		}
+		Set loginstatus= $$TradeLicense^%SYS.cspServer($this,.%request,.newlicenseid )
+	}
+	Quit loginstatus
+]]></Implementation>
+</Method>
+
+<Method name="CompleteTwoFactorLogin">
+<Description>
+If this application has a Two-Factor-Authentication enabled, when this method allows you to finish the second part of the authentication. For example,
+a security token was sent during the initial login attempt, Login^%CSP.Session().
+You must obtain this security code (an 8-character numeric string) and call CompleteToFactorLogin() to 
+complete authencation for this user. 
+Note: This should only be called if Login^%CSP.Session() returns a status of $$$CSPPendingTwoFactorAuthentication
+Returns: $$$CSPSecondFactorLoginFailed if request's application was not Two-Factor-Authentication enabled
+Returns: $$$OK if login was completed
+Returns: $$$CSPSecurityTokenMismatch is a token was found, but did not match the entered token,
+else returns the error code which cause the completion to fail</Description>
+<CodeMode>expression</CodeMode>
+<FormalSpec>EnteredToken:%String,apperr:%Status</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[$$CompleteTwoFactorLogin^%SYS.cspServer($this, %request, EnteredToken, .apperr )
+]]></Implementation>
+</Method>
+
+<Property name="Data">
+<Description><![CDATA[
+The place users can preserve any data within a session. You can set values into this
+multidimensional property using:
+<example>
+Set %session.Data(1,2,"string")="value"
+Write %session.Data("Key1","Key2"),!
+Merge %session.Data(5)=array
+</example>
+This is faster than using the <method>Get</method> and <method>Set</method> ]]></Description>
+<Type>%String</Type>
+<MultiDimensional>1</MultiDimensional>
+</Property>
+
+<Method name="Get">
+<Description><![CDATA[
+Get the value of the user data at <var>index</var>. This is equivalent to:
+<example>
+Write $Get(%session.Data(index),default)
+</example>
+It is faster to access the property directly rather than use the <method>Get</method>
+and <method>Set</method> methods. These are kept for backward compatibility.]]></Description>
+<Final>1</Final>
+<CodeMode>expression</CodeMode>
+<FormalSpec>index:%String,default:%String=""</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[$get(i%Data(index),default)
+]]></Implementation>
+</Method>
+
+<Method name="Set">
+<Description><![CDATA[
+Set the value of the user data at <var>index</var> to <var>value</var>. This is
+equivalent to:
+<example>
+Set %session.Data(index)=value
+</example>
+It is faster to access the property directly rather than use the <method>Get</method>
+and <method>Set</method> methods. These are kept for backward compatibility.]]></Description>
+<Final>1</Final>
+<FormalSpec>index:%String,value:%String</FormalSpec>
+<Implementation><![CDATA[	Set i%Data(index)=value Quit
+]]></Implementation>
+</Method>
+
+<Method name="Next">
+<Description><![CDATA[
+Return the next <var>index</var> in the user data <property>Data</property>. This
+has been deprecated in favour of the faster syntax:
+<example>
+Write $Order(%session.Data(index))
+</example>]]></Description>
+<Final>1</Final>
+<CodeMode>expression</CodeMode>
+<FormalSpec>index:%String=""</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[$order(i%Data(index))
+]]></Implementation>
+</Method>
+
+<Method name="Kill">
+<Description><![CDATA[
+Remove the <var>index</var> from the user data <property>Data</property>. This
+has been deprecated in favour of the faster syntax:
+<example>
+Kill %session.Data(index)
+; Or if index=""
+Kill %session.Data
+</example>]]></Description>
+<Final>1</Final>
+<FormalSpec>index:%String=""</FormalSpec>
+<Implementation><![CDATA[
+	If index'="" { Kill i%Data(index) } Else { Kill i%Data }
+	Quit
+]]></Implementation>
+</Method>
+
+<Method name="IsDefined">
+<Description><![CDATA[
+Tests if a name-value pair <VAR>name</VAR> is defined in the user data.
+This has been deprecated in favour of the faster syntax:
+<example>
+Write $Data(%session.Data(index))
+</example>]]></Description>
+<Final>1</Final>
+<CodeMode>expression</CodeMode>
+<FormalSpec>index:%String</FormalSpec>
+<ReturnType>%Boolean</ReturnType>
+<Implementation><![CDATA[$data(i%Data(index))
+]]></Implementation>
+</Method>
+
+<Method name="Unlock">
+<Description><![CDATA[
+Unlock the ^%cspSession global so that another process can access this objects storage
+at the same time. Normally all accesss to the session object is serialised so that only
+one Cache process can modify the session object at any time. So if you are using
+frames for example the same CSP user will make requests to get all frames at once, but
+these will be serialised on the Cache side. If you know that a frame will take a while
+to generate but you do not wish this to hold up the generation of the other frames and
+you do not need to modify the session object you can call Unlock to unlock this session
+object so other processors can access it. This should be used with care.
+The <var>save</var> is for internal use only, by default when you call Unlock if the
+session is modified we will save the changes before unlocking the session.]]></Description>
+<FormalSpec>save:%Boolean=1</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	#Dim sc As %Status
+	If i%nosave=1 Set i%%Concurrency=0
+	If i%%Concurrency=0 Quit $$$OK
+	Set sc=$$$OK
+	If save {
+		Set sc=$$SaveSession^%SYS.cspServer2($this)
+		Set i%nosave=2
+	} Else {
+		Set i%nosave=3
+	}
+	Lock -^%cspSession(i%SessionId)
+	Set i%%Concurrency=0
+	Do $system.CLS.SetModified(0)
+	Quit sc
+]]></Implementation>
+</Method>
+
+<Property name="nosave">
+<Type>%Integer</Type>
+<Internal>1</Internal>
+<InitialExpression>0</InitialExpression>
+<Transient>1</Transient>
+</Property>
+
+<Property name="GetNewId">
+<Type>%Boolean</Type>
+<Internal>1</Internal>
+<InitialExpression>0</InitialExpression>
+<Transient>1</Transient>
+</Property>
+
+<Property name="LogoutCleanup">
+<Description>
+If set, this causes the cspServer to destroy the Login Cookie, any 
+Security Tokens associated with this session, and the Sticky-login associated 
+with this session's browser. '1' to destory terminate this session upon completion 
+of this request.</Description>
+<Type>%Boolean</Type>
+<Internal>1</Internal>
+<InitialExpression>0</InitialExpression>
+<Transient>1</Transient>
+</Property>
+
+<Property name="ApplicationLicenses">
+<Description><![CDATA[
+Holds application licenses taken for this session.<br>
+Format:  $lb($lb(appname1,type1,type2,...),$lb(appname2,type1,type2,...),...)<br>
+Controled by $SYSTEM.License.TakeApplicationLicense(AppName,FeatureKeyword,.Count) and $SYSTEM.License.ReturnApplicationLicense(AppName,FeatureKeyword,.Released)]]></Description>
+<Type>%List</Type>
+<Internal>1</Internal>
+</Property>
+
+<Method name="Lock">
+<Description><![CDATA[
+Lock the ^%cspSession global to prevent other Cache processes accessing this objects
+storage. By default the ^%cspSession global is locked so you only need to call this
+in rare cases where you use the <method>Unlock</method> and you wish to reaquire the
+lock afterwards.]]></Description>
+<FormalSpec>timeout:%Integer</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	#Dim data
+	If i%%Concurrency||(i%nosave=1) Quit $$$OK
+	Lock +^%cspSession(i%SessionId):+$get(timeout)
+	If '$test {
+		If '$ZB($SYSTEM.Lock.ReturnCode(),1,1) {
+			If '$data(timeout) {
+				Lock +^%cspSession(i%SessionId):$get(^%SYS("CSP","SessionLockTimeout"),240)
+				If '$test Quit $$$ERROR($$$LockFailedToAcquireExclusive,$name(^%cspSession(i%SessionId)))
+			} Else {
+				Quit $$$ERROR($$$LockFailedToAcquireExclusive,$name(^%cspSession(i%SessionId)))
+			}
+		}
+	}
+	#; Update the old timeout value from the disk value now
+	Set data=$get(^%cspSession(i%SessionId)) Set i%OldTimeout=$lg(data,$$$sesOldTimeout)
+	Set i%%Concurrency=1
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="%OnNew">
+<Description>
+Initialize CSP session object.</Description>
+<Internal>1</Internal>
+<FormalSpec>initvalue,lock=1</FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	If $get(initvalue)="" Quit $$$ERROR($$$SessionIdMissing)
+	If 'lock Set i%%Concurrency=0,i%nosave=1
+	#; Two stage lock so we do not need to look up this global most of the time as we will get the lock immediately and only
+	#; wait for the timeout if we have to
+	If i%%Concurrency Lock +^%cspSession(initvalue):0 Else  If '$ZB($SYSTEM.Lock.ReturnCode(),1,1) Lock +^%cspSession(initvalue):$get(^%SYS("CSP","SessionLockTimeout"),240) Else  Quit $$$ERROR($$$LockFailedToAcquireExclusive,$name(^%cspSession(initvalue)))
+	Set i%SessionId=initvalue Do ..%IdSet(initvalue)
+	Set i%Key=$select($get(^%SYS("CSP","NoEncrypt")):"notencrypted",1:$system.Encryption.GenCryptRand(32))
+	Set i%PersistentHeaders=$get(^%SYS("CSP","SessionPersistentHeaders"))
+	Set i%CreateTime=$zdatetime($ztimestamp,3)
+	Do $zutil(67,14,initvalue,$job)
+	Do ..DataSetModified(0)
+	$$$CSPLogAll(2,"CSPSession", "[%OnNew] Creating new CSP session, nosave="_i%nosave,"","",initvalue)
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="%OnClose">
+<Description>
+Cleanup CSP session object.</Description>
+<Internal>1</Internal>
+<Private>1</Private>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	If i%%Concurrency Lock -^%cspSession($$$idCurrent)
+	Do $zutil(67,14,"",$job)
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<UDLText name="T">
+<Content><![CDATA[
+/*
+/// Load saved session
+Method %LoadData(id As %String) As %Status [ Internal, Private ]
+{
+	#Dim data
+	#; Two stage lock to avoid looking up ^%SYS global if we can get the lock straight away
+	If i%%Concurrency,i%nosave'=1 {
+		Lock +^%cspSession(id):0 If '$test {
+			If '$ZB($SYSTEM.Lock.ReturnCode(),1,1) {
+				Lock +^%cspSession(id):$get(^%SYS("CSP","SessionLockTimeout"),240) If '$test {
+					Quit $$$ERROR($$$LockFailedToAcquireExclusive,$name(^%cspSession(id)))
+				}
+			} Else {
+				Set i%%Concurrency=0
+				Set i%nosave=1
+			}
+		}
+	}
+	Set data=$get(^%cspSession(id))
+	If data="" {
+		$$$CSPLogAll(2,"CSPSession","[%LoadData] Session id does not exist","","",id) 
+		Quit $$$ERROR($$$SessionIdDoesNotExist,id)
+	}
+	If 'i%nosave Merge i%Data=^(id,0)
+	$$$CSPLogAll(2,"CSPSession","[%LoadData] Loading CSP session, nosave="_i%nosave,data,"",id)
+	Set i%SessionId=id
+	Set i%AppTimeout=$lg(data,1),i%Preserve=$lg(data,3),i%OldTimeout=$lg(data,4),i%Key=$lg(data,5),i%UseSessionCookie=$lg(data,6)
+	Set i%Namespace=$lg(data,7,$namespace),i%CSPSessionCookie=$lg(data,8),i%Debug=$lg(data,10)
+	
+	Set offset=$length($list(data,1,10))+1,tmpdata=$list($extract(data,offset,*),1,10)
+	Set i%Language=$lg(tmpdata,1),i%LicenseId=$lg(tmpdata,2,id),i%MessageNumber=$lg(tmpdata,3),i%KeepAlive=+$lg(tmpdata,4)
+	Set i%Application=$lg(tmpdata,5),i%SecurityContext=$lg(tmpdata,6)
+	Set i%BrowserName=$lg(tmpdata,7),i%BrowserPlatform=$lg(tmpdata,8),i%BrowserVersion=$lg(tmpdata,9),i%CreateTime=$lg(tmpdata,10)
+	
+	Set offset=offset+$length(tmpdata),tmpdata=$list($extract(data,offset,*),1,10)
+	Set i%LastModified=$lg(tmpdata,1),i%HttpAuthorization=$lg(tmpdata,2),i%UserAgent=$lg(tmpdata,3)
+	Set i%RunNamespace=$lg(tmpdata,4),i%ErrorPage=$lg(tmpdata,5),i%SecureSessionCookie=$lg(tmpdata,6),i%CookiePath=$lg(tmpdata,7)
+	Set i%EventClassContext=$lg(tmpdata,8),i%StickyLogin=$lg(tmpdata,9),i%GroupId=$lg(tmpdata,10)
+	
+	Set tmpdata=$list($extract(data,offset+$length(tmpdata),*),1,10)
+	Set i%SOAPRequestCount=$lg(tmpdata,1),i%ProcessId=$lg(tmpdata,2),i%ByIdGroups=$lg(tmpdata,3)
+	Set i%ApplicationLicenses=$lg(tmpdata,4),i%PersistentHeaders=$lg(tmpdata,5),i%Referrer=$lg(tmpdata,6)
+	Do $zutil(67,14,id,$job)
+	#; Reset defaults for values that are not stored.
+	Set i%EndSession=0,i%NoLicense=0,i%NewSession=0
+	Do $system.CLS.SetModified(0)
+	Quit $$$OK
+}
+*/
+]]></Content>
+</UDLText>
+
+<UDLText name="T">
+<Content><![CDATA[
+/*
+/// Save session
+Method %SaveData(id As %String, notFinalSave As %Boolean = 0) As %Status [ Internal ]
+{
+	#Dim sc,inTransaction,timeoutAt
+	If i%nosave=1 Quit $$$OK
+	#; We do not care if session cookie is changed as this is modified on every request
+	Do ..CSPSessionCookieSetModified(0)
+	If i%%Concurrency=0,i%nosave {
+		If i%nosave'=2||('$system.CLS.GetModified()) Quit $$$OK
+		Set sc=..Lock() If $$$ISERR(sc) Quit sc
+		Quit ..Unlock()
+	}
+	Set sc=$$$OK
+	Try {
+		#; Turn off transactions for this save
+		Set inTransaction=$zutil(139,2)
+		#; Update the timeout table if this is the final save or we don't have a already have a timeout value
+		If (i%OldTimeout="")||(notFinalSave=0) {
+			#; If the application can timeout setup the global to say when it will timeout
+			If i%AppTimeout'=0 {
+				If i%AppTimeout="" Set i%AppTimeout=$$$CSPdefaulttimeout
+				Set timeoutAt=$ztimestamp,timeoutAt=($piece(timeoutAt,",")*86400+$piece(timeoutAt,",",2)+i%AppTimeout)\1
+				#; No need to update timeout unless it is a 2 second or more change
+				If $ZABS(timeoutAt-i%OldTimeout)>1||((i%AppTimeout<10)&&(timeoutAt'=i%OldTimeout)) {
+					Set ^%cspSession(0,timeoutAt,id)="" 
+					Kill ^%cspSession(0,+i%OldTimeout,id) 
+					Set i%OldTimeout=timeoutAt
+				}
+			} Else {
+				If +i%OldTimeout {
+					Kill ^%cspSession(0,i%OldTimeout,id)
+				}
+				Set i%OldTimeout=0
+			}
+		}	
+		Set i%LastModified=$zdatetime($ztimestamp,3)
+		#; If nothing modified last request was in the same second so we can exit without updating any globals
+		If $$$objModAll() {
+			Set ^%cspSession(id)=$ListBuild(i%AppTimeout,,i%Preserve,i%OldTimeout,i%Key,i%UseSessionCookie,i%Namespace,i%CSPSessionCookie,,i%Debug,i%Language,i%LicenseId,i%MessageNumber,i%KeepAlive,i%Application,i%SecurityContext,i%BrowserName,i%BrowserPlatform,i%BrowserVersion,i%CreateTime,i%LastModified,i%HttpAuthorization,i%UserAgent,i%RunNamespace,i%ErrorPage,i%SecureSessionCookie,i%CookiePath,i%EventClassContext,$get(i%StickyLogin),$get(i%GroupId),i%SOAPRequestCount,i%ProcessId,i%ByIdGroups,i%ApplicationLicenses,i%PersistentHeaders,i%Referrer)
+			If ..DataIsModified() {
+				If $get(^%SYS("CSP","NewMerge"),0),$zutil(23,1)=5 {
+					Do ..GlobalReplace("..Data",$name(^%cspSession(id,0))) 
+				} Else {
+					Kill ^%cspSession(id,0) Merge ^(0)=i%Data
+				}
+			}
+		}
+		$$$CSPLogAll(2,"CSPSession","[%SaveData] Saved: ", ^%cspSession(id),"",id)
+	} catch {
+		$$$CSPLogErrorVar("CSPSession","[SaveErr] Session-ID: "_id_" ;Error saving session; ","$ze:"_$zerror)
+		Set sc=$$$ERROR($$$CacheError,$zerror)
+	}
+	#; Turn transactions back on
+	Do $zutil(139,inTransaction)
+	Do $system.CLS.SetModified(0)
+	Quit sc
+}
+*/
+]]></Content>
+</UDLText>
+
+<UDLText name="T">
+<Content><![CDATA[
+/*
+/// Delete saved session data.
+//ClassMethod %DeleteData(id As %String, concurrency As %Integer) As %Status [ Internal ]
+{
+	#Dim session As %CSP.Session
+	
+	$$$SysLogCondSetVar
+	Set session=..GetSession(id)
+	If session=$$$NULLOREF {
+		Quit $select($get(%objlasterror)'="":%objlasterror,1:$$$ERROR($$$CSPSessionNotFound,id))
+	}
+	#define ForceEnd 1
+	Do session.endSession(,$$$ForceEnd)
+	Quit $$$OK
+}
+*/
+]]></Content>
+</UDLText>
+
+<Method name="endSession">
+<Internal>1</Internal>
+<FormalSpec>timedout,forceend,requestid=""</FormalSpec>
+<ReturnType>%Boolean</ReturnType>
+<Implementation><![CDATA[
+	$$$SysLogCondSetVar
+	Quit $$endSession^%SYS.cspServer(.timedout,.forceend,requestid)
+]]></Implementation>
+</Method>
+
+<Method name="Log">
+<Description>
+Log data to CSP session object.</Description>
+<Internal>1</Internal>
+<FormalSpec>msg:%String,data:%Binary=""</FormalSpec>
+<Implementation><![CDATA[
+	Set ^%cspSession(i%SessionId,1,$Increment(^%cspSession(i%SessionId,1)))=$ListBuild($ZTS,msg,data)
+	Quit
+]]></Implementation>
+</Method>
+
+<Method name="GetSession">
+<Description>
+Retrieve session object associated with sessionId</Description>
+<Internal>1</Internal>
+<ClassMethod>1</ClassMethod>
+<FormalSpec>sessionId:%String,CSPSessionCookie:%String="",lock:%Boolean=1,request:%CSP.Request</FormalSpec>
+<ReturnType>%CSP.Session</ReturnType>
+<Implementation><![CDATA[
+	#Dim session,appdata
+	Quit:$Get(sessionId)="" ""
+	Set session=$$$NULLOREF
+	Try {
+		#; Two stage lock to avoid having to look up ^%SYS global if we can get lock immediately
+		If lock Lock +^%cspSession(sessionId):0 Else  If '$ZB($SYSTEM.Lock.ReturnCode(),1,1) Lock +^%cspSession(sessionId):$get(^%SYS("CSP","SessionLockTimeout"),240) Else  Return ""
+		If $data(^%cspSession(sessionId)) {
+			Set session=..%Open($$$oidForm(sessionId),lock)
+			If session'=$$$NULLOREF,'lock Set session.nosave=1
+		}
+		If session=$$$NULLOREF {
+			Set session=..%New(sessionId,lock)
+			If $isobject($get(request))=1 {
+				Set appdata=request.AppData
+				Set session.AppTimeout=$select($$$GetSecurityApplicationsTimeout(appdata)="":$$$CSPdefaulttimeout,1:$$$GetSecurityApplicationsTimeout(appdata))
+				Set session.UseSessionCookie=$select($$$GetSecurityApplicationsUseCookies(appdata)'="":$$$GetSecurityApplicationsUseCookies(appdata),1:1),session.Namespace=$$$GetSecurityApplicationsNameSpace(appdata)
+				Set session.Referrer=$get(request.CgiEnvs("HTTP_REFERER"))
+			}
+		}
+	} Catch exception {
+		If lock Lock -^%cspSession(sessionId)#"I"
+		Throw exception
+	}
+	If lock Lock -^%cspSession(sessionId)#"I"
+	If CSPSessionCookie'="" Set $extract(CSPSessionCookie,13,22)=$justify(sessionId,10) Set session.CSPSessionCookie=CSPSessionCookie
+	If 'lock Set session.nosave=1
+	Quit session
+]]></Implementation>
+</Method>
+
+<Method name="ChangeSessionId">
+<Description>
+Allow sessionId of existing session to be udpated to a brand new value</Description>
+<Internal>1</Internal>
+<FormalSpec>sessionId:%String,request:%CSP.Request</FormalSpec>
+<Private>1</Private>
+<Implementation><![CDATA[
+	Set sc=$$$OK,nosave=i%nosave,cookie=i%CSPSessionCookie,appdata=request.AppData
+	If nosave=0 {
+		Lock +^%cspSession(sessionId):$get(^%SYS("CSP","SessionLockTimeout"),240) Else  Quit $$$ERROR($$$CSPUnableToLock)
+	}
+	Try {
+		If $data(^%cspSession(sessionId)) Set sc=$$$ERROR($$$GeneralError,"New sessionId already exists") Goto exit
+		Set sc=..%Destruct() If $$$ISERR(sc) Goto exit
+		Do ..Reset()
+		Set sc=..%OnNew(sessionId,nosave'=1) If $$$ISERR(sc) Goto exit
+		If cookie'="" Set $extract(cookie,13,22)=$justify(sessionId,10) Set i%CSPSessionCookie=cookie Do ..UpdateHMAC()
+		Set i%AppTimeout=$select($$$GetSecurityApplicationsTimeout(appdata)="":$$$CSPdefaulttimeout,1:$$$GetSecurityApplicationsTimeout(appdata))
+		Set i%UseSessionCookie=$select($$$GetSecurityApplicationsUseCookies(appdata)'="":$$$GetSecurityApplicationsUseCookies(appdata),1:1),i%Namespace=$$$GetSecurityApplicationsNameSpace(appdata)
+		Set i%Referrer=$get(request.CgiEnvs("HTTP_REFERER"))
+	} Catch {
+		Set sc=$$$ERROR($$$GeneralError,$zerror)
+	}
+exit	Lock -^%cspSession(sessionId)#"I"
+	Quit sc
+]]></Implementation>
+</Method>
+
+<Method name="Reset">
+<Description>
+Resets this %CSP.Session object to its initial state</Description>
+<Final>1</Final>
+<CodeMode>generator</CodeMode>
+<Private>1</Private>
+<Implementation><![CDATA[
+	Set %code=0,set="",kill=""
+	Set var=$$$comMemberNext(%class,$$$cCLASSinstancevar,"")
+	While var'="" {
+		$$$comMemberKeyGetLvar(runtimetype,%class,$$$cCLASSproperty,var,$$$cPROPruntimetype)
+		Set classtype=$$$getClassType(runtimetype),qvar=$$$QN(var)
+		If classtype'=$$$cCLASSCLASSTYPEDATATYPE {
+			If var="Content"||(classtype=$$$cCLASSCLASSTYPEPERSISTENT)||(classtype=$$$cCLASSCLASSTYPESERIAL) {
+				Set set=set_",r%"_qvar_"=$$$NULLOREF,i%"_qvar_"=$$$NULLOID" If $length(set)>80 $$$GENERATE("	Set "_$extract(set,2,*)) Set set=""
+			} Else {
+				Set set=set_",i%"_qvar_"=$$$NULLOREF" If $length(set)>80 $$$GENERATE("	Set "_$extract(set,2,*)) Set set=""
+			}
+		} ElseIf '$$$comMemberKeyGet(%class,$$$cCLASSproperty,var,$$$cPROPmultidimensional) {
+			Set set=set_",i%"_qvar_"="_$$$comMemberKeyGet(%class,$$$cCLASSinstancevar,var,$$$cIVARinitialexpression) If $length(set)>80 $$$GENERATE("	Set "_$extract(set,2,*)) Set set=""
+		} Else {
+			Set kill=kill_",i%"_qvar
+		}
+		Set var=$$$comMemberNext(%class,$$$cCLASSinstancevar,var)
+	}
+	If set'="" $$$GENERATE("	Set "_$extract(set,2,*))
+	If kill'="" $$$GENERATE("	Kill "_$extract(kill,2,*))
+	$$$GENERATE(" Quit")
+	
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="SystemRestart">
+<Description>
+Internal function called when Cache restarts</Description>
+<Internal>1</Internal>
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	Do systemRestart^%SYS.cspServer()
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Query name="Extent">
+<Description>
+Standard extent query</Description>
+<Type>%Query</Type>
+<SqlProc>1</SqlProc>
+<Parameter name="CONTAINID" value="1"/>
+<Parameter name="ROWSPEC" value="ID:%String"/>
+</Query>
+
+<Method name="ExtentExecute">
+<Description>
+Execute method for Extent query</Description>
+<Internal>1</Internal>
+<ClassMethod>1</ClassMethod>
+<FormalSpec><![CDATA[&qHandle:%Binary]]></FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	Set qHandle=0
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="ExtentFetch">
+<Description>
+Fetch method for Extent query</Description>
+<Internal>1</Internal>
+<ClassMethod>1</ClassMethod>
+<FormalSpec><![CDATA[&qHandle:%Binary,&Row:%List,&AtEnd:%Integer=0]]></FormalSpec>
+<PlaceAfter>ExtentExecute</PlaceAfter>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	Set Row="",AtEnd=0
+	Set qHandle=$order(^%cspSession(qHandle))
+	If qHandle="" Set AtEnd=1 Quit $$$OK
+	Set Row=$listbuild(qHandle)
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="ExtentClose">
+<Description>
+Close method for Extent query</Description>
+<Internal>1</Internal>
+<ClassMethod>1</ClassMethod>
+<FormalSpec><![CDATA[&qHandle:%Binary]]></FormalSpec>
+<PlaceAfter>ExtentExecute</PlaceAfter>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	Kill qHandle
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Query name="SessionInfo">
+<Description>
+Standard extent query</Description>
+<Type>%Query</Type>
+<SqlProc>1</SqlProc>
+<Parameter name="CONTAINID" value="1"/>
+<Parameter name="ROWSPEC" value="ID:%String,Username:%String,Preserve:%Integer,Application:%String,Timeout:%TimeStamp,LicenseId:%String,SesProcessId:%String,AllowEndSession"/>
+</Query>
+
+<Method name="SessionInfoExecute">
+<Description>
+Execute method for Extent query</Description>
+<Internal>1</Internal>
+<ClassMethod>1</ClassMethod>
+<FormalSpec><![CDATA[&qHandle:%Binary]]></FormalSpec>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	Set qHandle=0
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="SessionInfoFetch">
+<Description>
+Fetch method for Extent query</Description>
+<Internal>1</Internal>
+<ClassMethod>1</ClassMethod>
+<FormalSpec><![CDATA[&qHandle:%Binary,&Row:%List,&AtEnd:%Integer=0]]></FormalSpec>
+<PlaceAfter>ExtentExecute</PlaceAfter>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	#Dim data,timeout,username
+	Set Row="",AtEnd=0
+	Set qHandle=$order(^%cspSession(qHandle),1,data)
+	If qHandle="" Set AtEnd=1 Quit $$$OK
+	Set timeout=$listget(data,$$$sesOldTimeout) If timeout'="" Set timeout=$zdt((timeout\86400)_","_(timeout#86400),3)
+	Set username=$listget($listget(data,$$$sesSecurityContext))
+	Set allowendsession=1
+	If (($E($listget(data,$$$sesApplication),1,9)="/csp/sys/") || ($listget(data,$$$sesPreserveFlag)=1)) Set allowendsession=0
+	Set Row=$listbuild(qHandle,username,$listget(data,$$$sesPreserveFlag),$listget(data,$$$sesApplication),timeout,$listget(data,$$$sesLicenseId),$lg(data,$$$sesProcessId),allowendsession)
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="SessionInfoClose">
+<Description>
+Close method for Extent query</Description>
+<Internal>1</Internal>
+<ClassMethod>1</ClassMethod>
+<FormalSpec><![CDATA[&qHandle:%Binary]]></FormalSpec>
+<PlaceAfter>ExtentExecute</PlaceAfter>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	Kill qHandle
+	Quit $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="ProcessRequest">
+<Internal>1</Internal>
+<FormalSpec><![CDATA[request,response,&preserve]]></FormalSpec>
+<Implementation><![CDATA[	Do CSPDispatch^%SYS.cspServer(request,response,.preserve)
+]]></Implementation>
+</Method>
+
+<Method name="SetContext">
+<Internal>1</Internal>
+<Implementation><![CDATA[
+	#Dim timestamp
+	Set i%SecurityContext=$system.Security.Users.ExportSecurityContext(),..MessageNumber=$$$MultiPageSession,..LicenseId=$system.License.GetUserId()
+	Set ..Application="/dummyXXX"
+	#; Create this session 2 seconds ago so when it is released it is never in grace period
+	Set timestamp=$ztimestamp,timestamp=$piece(timestamp,",")*86400+$piece(timestamp,",",2),timestamp=timestamp-2,timestamp=(timestamp\86400)_","_(timestamp#86400)
+	Set ..CreateTime=$zdatetime(timestamp,3)
+	#; Need to recompute the HMAC based on the new token and return this as the cookie
+	Do ..UpdateHMAC()
+]]></Implementation>
+</Method>
+
+<Method name="Callback">
+<Internal>1</Internal>
+<FormalSpec>method:%String</FormalSpec>
+<Implementation><![CDATA[	Quit $$OnCallback^%SYS.cspServer($this,method)
+]]></Implementation>
+</Method>
+
+<Method name="LogoutAll">
+<Description>
+Logout all CSP sessions for the indicated user.
+Callbacks can't stop logout
+The login cookie and any pending-second-factor logins are cancelled.
+Note: username="" implies username=$username.
+Note: $Roles must have "%All" to call this
+Note: LogoutAll calls %SaveData on the changed sessions.</Description>
+<FormalSpec>username:%String=""</FormalSpec>
+<Implementation><![CDATA[	quit $$LogoutAllUserSessions^%SYS.cspServer(username, %request, %response )
+]]></Implementation>
+</Method>
+
+<Method name="Logout">
+<Description>
+This call logs out the current session. The EndSession is not set to 1. 
+This call uses the stored security context from the Event Class Context to call "OnLogout" Event Class callbacks, 
+so the caller of Logout() must have sufficient privileges to call $System.Security.Users.ImportSecurityContext() if callbacks exist.
+The OnLogout callback may set EndSession to 1, if desired.
+The Session is logged out only if there are no callbacks, the "OnLogout" callbacks return $$$OK, or 'force' is true.
+If the caller has the %All role, the login cookie will also be destroyed and any pending second factor tokens for this session will be deleted.
+Note: Caller must do a %SaveData() on the session instance</Description>
+<FormalSpec>force:%Integer=0</FormalSpec>
+<Implementation><![CDATA[
+	try 
+	{
+		#Dim status As %Status
+		#Dim exp As %Exception.AbstractException
+	
+		Set status = ..Callback("OnLogout")
+	
+		if ( (force || $$$ISOK(status))&& ((i%SecurityContext'="")||(i%StickyLogin'="")))
+		{
+			#Dim app as %String
+			Set app = i%Application
+			Do ..EventClassFix(i%SecurityContext)
+			Set i%SecurityContext = ""
+			Set i%StickyLogin = ""
+			Set i%Application = ""
+			Set i%LogoutCleanup = 1
+			Do AUDITLOGOUT^%SYS.SECURITY(app_" "_$$$GetMsg($$$AuditMsg,"ExplicitLogout"),app_" logout")
+		}
+		$$$CSPLogAll(2,"CSPSession","[Logout] status="_$$$GETERRORCODE(status),status,"", i%SessionId )
+	} 
+	catch exp 
+	{
+		#Dim msg as %String
+			
+		if (($Data(exp)&1)=1) {
+			Set msg = exp.DisplayString()
+		}
+		
+		$$$CSPLogAll(2,"CSPSession","[Logout] Catch Exception: "_$get(msg),"","", i%SessionId )
+	}
+	Quit status
+]]></Implementation>
+</Method>
+
+<Method name="GetByIdUsername">
+<Description>
+Return the Username from the by-id groups sticky context. This could be 
+the empty string if no authenticated user has logged into the group yet. </Description>
+<Internal>1</Internal>
+<FormalSpec>runtimeGroupId:%String</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	#Dim username,groupByIdItem,stickyLogin,stickyContext
+	
+	Set username = ""
+	Set groupByIdItem = $get($$$GroupByIdSlot(runtimeGroupId)) 
+	if $get(groupByIdItem)'="" {
+		Set stickyLogin = $$$giLoginStateG(groupByIdItem)
+		if (stickyLogin'="") {
+		  	set stickyContext = $$$lsSecContextG(stickyLogin)
+		  	if ( stickyContext'="" ) {
+				Set username = $$$gSecurityContextUsername(stickyContext)
+		  	}
+		}
+	}
+	Quit username
+]]></Implementation>
+</Method>
+
+<Method name="GetLinkTargets">
+<Description><![CDATA[
+CheckLinkAccess determines whether the target user is permitted
+   to view a given CSP or Zen page based on the security requirements 
+  for the relevant target Web application, the underlying page class, 
+  and any custom resources applied to the link.
+<p>Positive return values indicate that there is already enough information to 
+determin if the link should be enabled (Target variables may be undefined.). 
+Negative values indicate that further processing
+needs to be done. Checking that the Target User can be logged into the Target Application 
+and/or checking if the link's page has target resources which the Target User 
+must have privileges to.</p>
+<p>Returns 0 if the link is not to a csp application. (enable)</p>
+<p>Returns 1 if the user is permitted access to the page. (enable) </p>
+<p>Returns 2 if could not determine Target User. Clicking on link will bring up login page. (choice: enable or disable)</p>
+<p>Returns 3 if the user doesn't have access to the CSP application.(disable)</p>
+<p>Returns 4 if the user doesn't have resources specific to the page.(disable)</p>
+<p>Returns -1 if check both if the Target User can log into the Target Application 
+and check the Page's resources if any.</p>
+<p>Returns -2 just check for access to the link's Page's resources, if any.</p>
+<ol>
+<li>It is assumed the GetLinkTargets is called from a context in which 
+   %request is available, ie, from callpage in the CSP Server </li>
+<li>Definitions:
+   <ol><li>Source application - application in which the current caller is being run</li>
+   <li>Current user - ($Username) the user currently logged into the Source Application</li>
+  <li>Target Application - the application pointed to by the link</li>
+   <li>Target User - the computed username under which the user will be logged 
+      into the Target Application</li>
+   <li>Target Page: the page portion of the link, e.g., /csp/app/mypage.csp:  mypage.csp</li>
+  </ol></ol>
+<p>This method is meant to be called from the link's containing page 
+  within the context of the CSP server. The containing page is part of a 
+  session's current application.</p>
+<p>We must be able to detemine which target user will be used to check privileges. The target user cannot be 
+determined if the source and target applications are different and the target is neither part of an active 
+by-id group nor sharing-sessions with the source application.</p>
+<p>Applications share sessions when:</p>
+<ul>
+<li>The source and target are the same application.</li>
+<li>The link to the target page contains CSPSHARE=1.</li>
+<li>Source and target applications have the same Session Cookie Path.</li>
+</ul>
+<h3>Who is the target user?</h3>
+ <p>Since this is called from with a CSP session, there are the following situations:</p>
+ <ol>
+<li>The target application is a member of an authenticated by-id group. That group's
+ authenticated user is the Target User.</li>
+<li>If the target application will be in the current session, the CSP server has already 
+handled logic for determing the user.
+ <ol>
+  <li>The session's user is not UnknownUser. The target user is $Username.</li>
+  <li>The session's user is UnknownUser
+<ul>
+<li>If the target application is the same as the source application, the Target User is UnknownUser.</li>
+<li>If the target application is different, the target user is the user from the session's Sticky-context.
+If the session has no sticky-context, the Target User will be UnknownUser</li>
+</ul></li>
+</li></ol></li></ol>
+ <h3>CheckLinkAccess Policies</h3>
+<ul>
+<li>If the Target Application is not a CSP Application, return ENABLE/UNKNOWN	</li>	
+<li>If the Source and Target application are the same, return CHECK_RESOURCES_ONLY.</li> 		
+<li>If the Target Application is not enabled, return NO_APP_ACCESS	</li>	
+<li>If the Target Application is part of an authenticated By-ID group, set Target User to group's User, return CHECK_ALL</li>	
+<li>If the Target Application is part of an authenticated By-Session group, set Target User to group's User, return CHECK_ALL</li>	
+<li>If the Target Application is neither in an authenticated by-id group nor in the Source Application's session, return ENABLE/UNKNOWN</li>		
+<li>If an exception occurs, return NO_ACCESS_TO_RESOURCE</li>	
+</li>
+</ul>]]></Description>
+<FormalSpec><![CDATA[link:%String,&targetUsername:%String,&targetAppName:%String,&targetNamespace:%String]]></FormalSpec>
+<ReturnType>%Integer</ReturnType>
+<Implementation><![CDATA[
+	#Dim path,match,targetAppSpec,accessStatus,browserId,targetGroupId,targetCookiePath,stickyContext
+	try {
+		Set targetUsername = ""
+
+		#; get this applications specification
+		Set targetAppSpec = $$getapp^%SYS.cspServer(link,.path,.match)
+		If (targetAppSpec = "" ) {
+			Set accessStatus = $$$caNotCSPLink // This link is not to a CSP application: can access link
+		} 
+		else
+		{ 
+			Set targetAppName = $$$GetSecurityApplicationsName(targetAppSpec)
+			Set targetNamespace = $$$GetSecurityApplicationsNameSpace(targetAppSpec)
+			if ( %session.Application = match ) { 
+				Set targetUsername = $Username
+				Set accessStatus = $$$caCheckResourcesOnly  // same application: just check the page resources
+			}
+			elseif ('$$$GetSecurityApplicationsCSPZENEnabled(targetAppSpec)){
+				Set accessStatus = $$$caNoAccessToApp  // The CSP application is disabled: no access to app
+			}
+			else {
+				#; Target application is different from Source.
+				#; This value will be reset if Target App is in an authenticated by-id group
+				#; or is sharing the session with the current application.
+				Set accessStatus = $$$caUnknownTarget
+				#; Figure out who the Target User is
+				Set browserId = $get(%request.Cookies($$$BrowserIdCookieName,1))
+				Set targetGroupId = $$$GetSecurityApplicationsGroupById(targetAppSpec)
+				#; is there enough information to create a runtime group-by-id identifier?
+				if ( (targetGroupId '= "") && (browserId'="") ) {
+					#; get the username for the by-id group of which the target application is a member.
+					#Dim groupByIdItem,stickyLogin
+					Set targetUsername = ""
+					Set groupByIdItem = $get($$$GroupByIdSlot($$$bldRunGroupId(targetGroupId,browserId))) 
+					if groupByIdItem'="" {
+						Set stickyLogin = $$$giLoginStateG(groupByIdItem)
+						if (stickyLogin'="") {
+		  					set stickyContext = $$$lsSecContextG(stickyLogin)
+		  						if ( stickyContext'="" ) {
+									Set targetUsername = $$$gSecurityContextUsername(stickyContext)
+		  						}
+							}
+					}
+
+					#; (could be empty string if no authenticated user for this by-id group yet)
+					if (targetUsername'="") {
+		    			Set accessStatus = $$$caCheckAll // authenticated by-id group with different app: do full checking
+					}
+				}
+		
+				if ( targetUsername = "" ) { // if did not use by-id sharing
+					#; check to see of using session sharing
+					Set targetCookiePath = $$$GetSecurityApplicationsCookiePath(targetAppSpec)
+					if ((targetCookiePath=$$$GetSecurityApplicationsCookiePath(%request.AppData) ) || ( $zcvt(link,"U")["CSPSHARE=1")) {
+						#; using session sharing
+
+						if ( i%StickyLogin'="")  {
+						  	set stickyContext = $$$lsSecContextG(i%StickyLogin)
+						  	if ( stickyContext'="") {
+								Set targetUsername = $$$gSecurityContextUsername(stickyContext)
+						  	}
+						}
+						#; could be "" if no authenticated user has logged into this session yet, i.e. $Username should be UnknownUser
+						if (targetUsername="" ) {
+							Set targetUsername = $Username
+						}
+						Set accessStatus = $$$caCheckAll  // session sharing with different app: do full checking
+					}
+				} 
+			}
+		}
+	} catch { 
+		Set accessStatus = $$$caNoAccessToRes  // some error occurred:  no access to page
+	}
+		
+	Quit accessStatus
+]]></Implementation>
+</Method>
+
+<Method name="GlobalReplace">
+<FormalSpec>source:%String,dest:%String</FormalSpec>
+<Implementation><![CDATA[
+	Set sourcedata=$data(@source,data)#10,destdata=$data(@dest,data2)#10
+	If sourcedata {
+		If 'destdata||(data'=data2||($length(data)<100&&($lb(data)'=$lb(data2)))) {
+			Set @dest=data
+		}
+	} ElseIf destdata {
+		ZKill @dest
+	}
+	Set sourcenode=$query(@source,1,sourcedata)
+	#; Handle multidim property source node case
+	If $extract(sourcenode,1,9)="$ZOBJREF(" {
+		Set source=$piece(source,".",2,*),source=$piece(sourcenode,source)_source
+	}
+	Set sourcestart=$select($extract(source,*)=")":$extract(source,1,*-1)_",",1:source_"("),sourcesub=$extract(sourcenode,$length(sourcestart)+1,*)
+	If $extract(sourcenode,1,$length(sourcestart))'=sourcestart Set sourcenode="",sourcedata="",sourcesub=""
+	Set destnode=$query(@dest,1,destdata)
+	#; Handle multidim property dest node case
+	If $extract(destnode,1,9)="$ZOBJREF(" {
+		Set dest=$piece(dest,".",2,*),dest=$piece(destnode,dest)_dest
+	}
+	Set deststart=$select($extract(dest,*)=")":$extract(dest,1,*-1)_",",1:dest_"("),destsub=$extract(destnode,$length(deststart)+1,*)
+	If $extract(destnode,1,$length(deststart))'=deststart Set destnode="",destdata="",destsub=""
+	While sourcenode'=""||(destnode'="") {
+		Set movesource=0,movedest=0
+		If sourcesub=destsub,sourcenode'="",destnode'="" {
+			If destdata'=sourcedata||($length(destdata)<100&&($lb(destdata)'=$lb(sourcedata))) {
+				Set @destnode=sourcedata
+			}
+			Set movesource=1,movedest=1
+		} ElseIf destnode'="",sourcenode=""||(..collate(sourcesub,destsub)=-1) {
+			#; Need to remove dest node as it is not in the source
+			Kill @destnode
+			Set movedest=1
+		} Else {
+			#; Need to copy over source node
+			Set @(deststart_sourcesub)=sourcedata
+			Set movesource=1
+		}
+		If movesource {
+			Set sourcenode=$query(@sourcenode,1,sourcedata),sourcesub=$extract(sourcenode,$length(sourcestart)+1,*)
+			If $extract(sourcenode,1,$length(sourcestart))'=sourcestart Set sourcenode="",sourcedata="",sourcesub=""
+		}
+		If movedest {
+			Set destnode=$query(@destnode,1,destdata),destsub=$extract(destnode,$length(deststart)+1,*)
+			If $extract(destnode,1,$length(deststart))'=deststart Set destnode="",destdata="",destsub=""
+		}
+	}
+	Quit
+]]></Implementation>
+</Method>
+
+<Method name="collate">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>source:%String,dest:%String</FormalSpec>
+<Private>1</Private>
+<Implementation><![CDATA[
+	If source=dest Quit 0
+	If $extract(source,1,*-1)=$extract(dest,1,*-1) {
+		Quit $select($length(source)>$length(dest):-1,1:1)
+	}
+	Set source="^X("_source,dest="^X("_dest
+	Set result=0
+	Set sourceql=$ql(source),destql=$ql(dest)
+	For i=1:1:$select(sourceql<destql:sourceql,1:destql) {
+		If $qs(source,i)'=$qs(dest,i) {
+			Set result=$select($qs(source,i)]]$qs(dest,i):-1,1:1) Quit
+		}
+	}
+	If result=0 {
+		If sourceql>destql Set result=-1
+		If sourceql<destql Set result=1
+	}
+	Quit result
+]]></Implementation>
+</Method>
+
+<Storage name="Default">
+<Type>%Library.CacheStorage</Type>
+<DataLocation>^mtempZWebServerSessionD</DataLocation>
+<DefaultData>SessionDefaultData</DefaultData>
+<IdLocation>^mtempZWebServerSessionD</IdLocation>
+<IndexLocation>^mtempZWebServerSessionI</IndexLocation>
+<StreamLocation>^mtempZWebServerSessionS</StreamLocation>
+<Data name="SessionDefaultData">
+<Value name="1">
+<Value>%%CLASSNAME</Value>
+</Value>
+<Value name="2">
+<Value>EndSession</Value>
+</Value>
+<Value name="3">
+<Value>SessionId</Value>
+</Value>
+<Value name="4">
+<Value>GroupId</Value>
+</Value>
+<Value name="5">
+<Value>ByIdGroups</Value>
+</Value>
+<Value name="6">
+<Value>ProcessId</Value>
+</Value>
+<Value name="7">
+<Value>AppTimeout</Value>
+</Value>
+<Value name="8">
+<Value>SecureSessionCookie</Value>
+</Value>
+<Value name="9">
+<Value>RunNamespace</Value>
+</Value>
+<Value name="10">
+<Value>ErrorPage</Value>
+</Value>
+<Value name="11">
+<Value>Referrer</Value>
+</Value>
+<Value name="12">
+<Value>EventClassContext</Value>
+</Value>
+<Value name="13">
+<Value>StickyLogin</Value>
+</Value>
+<Value name="14">
+<Value>Namespace</Value>
+</Value>
+<Value name="15">
+<Value>Preserve</Value>
+</Value>
+<Value name="16">
+<Value>MessageNumber</Value>
+</Value>
+<Value name="17">
+<Value>PersistentHeaders</Value>
+</Value>
+<Value name="18">
+<Value>SOAPRequestCount</Value>
+</Value>
+<Value name="19">
+<Value>Debug</Value>
+</Value>
+<Value name="20">
+<Value>NewSession</Value>
+</Value>
+<Value name="21">
+<Value>CookiePath</Value>
+</Value>
+<Value name="22">
+<Value>BrowserName</Value>
+</Value>
+<Value name="23">
+<Value>BrowserPlatform</Value>
+</Value>
+<Value name="24">
+<Value>BrowserVersion</Value>
+</Value>
+<Value name="25">
+<Value>UserAgent</Value>
+</Value>
+<Value name="26">
+<Value>Key</Value>
+</Value>
+<Value name="27">
+<Value>UseSessionCookie</Value>
+</Value>
+<Value name="28">
+<Value>CSPSessionCookie</Value>
+</Value>
+<Value name="29">
+<Value>Language</Value>
+</Value>
+<Value name="30">
+<Value>LicenseId</Value>
+</Value>
+<Value name="31">
+<Value>HttpAuthorization</Value>
+</Value>
+<Value name="32">
+<Value>NoLicense</Value>
+</Value>
+<Value name="33">
+<Value>KeepAlive</Value>
+</Value>
+<Value name="34">
+<Value>Application</Value>
+</Value>
+<Value name="35">
+<Value>CreateTime</Value>
+</Value>
+<Value name="36">
+<Value>LastModified</Value>
+</Value>
+<Value name="37">
+<Value>SecurityContext</Value>
+</Value>
+<Value name="38">
+<Value>OldTimeout</Value>
+</Value>
+<Value name="39">
+<Value>ApplicationLicenses</Value>
+</Value>
+</Data>
+</Storage>
+</Class>
+
+
 </Export>
