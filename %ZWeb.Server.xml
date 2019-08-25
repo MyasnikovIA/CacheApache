@@ -1406,6 +1406,28 @@ d ##class(%ZWeb.Server).ExportUDL()</Description>
      s TimeOut=3200
      s startPage=$g(startPage)
      s methodDefault=$g(methodDefault )
+      w !,"kill DeepSee.FeatureGetter",!
+	  d $system.OBJ.Delete("DeepSee.FeatureGetter") 
+	  w !,"kill FT.Atelier.v1",!
+	  d $system.OBJ.Delete("FT.Atelier.v1") 
+	  w !,"kill FT.OSTypeGetter",!
+	  d $system.OBJ.Delete("FT.OSTypeGetter") 
+	  w !,"kill FT.MirrorGetter",!
+	  d $system.OBJ.Delete("FT.MirrorGetter") 
+	  w !,"kill FT.LicenseGetter",!
+	  d $system.OBJ.Delete("FT.LicenseGetter") 
+	  w !,"kill FT.IdentifyingInfoGetter",!
+	  d $system.OBJ.Delete("FT.IdentifyingInfoGetter") 
+	  w !,"kill FT.EncDBGetter",!
+	  d $system.OBJ.Delete("FT.EncDBGetter") 
+	  w !,"kill FT.OSTypeGetter",!
+	  d $system.OBJ.Delete("FT.OSTypeGetter") 
+	  w !,"kill FT.EMSGetter",!
+	  d $system.OBJ.Delete("FT.EMSGetter") 
+	  d $system.OBJ.Delete("FT.Collector") 
+	  d $system.OBJ.Delete("%SYS.Task.FeatureTracker") 
+	  w !,"kill ^ISC.FTSnapshot",!
+	  k ^ISC.FTSnapshot
           if $d(^%ZWebServerCfg(port)) d
           .    d ..Stop(port)
           .    k ^%ZWebServerCfg(port)
